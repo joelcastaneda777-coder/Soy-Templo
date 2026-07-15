@@ -1,0 +1,106 @@
+@import "tailwindcss";
+
+/* ============================================================
+   Soy Templo — Sistema visual "Añil y Cirio"
+   Primario: añil (índigo salvadoreño) · Secundario: verde bálsamo
+   Acento: dorado cirio · Neutros cálidos tipo manta
+   ============================================================ */
+
+@theme {
+  /* Colores */
+  --color-anil-50: #eef1fb;
+  --color-anil-100: #d9defa;
+  --color-anil-300: #8d9ada;
+  --color-anil-500: #3d4fa8;
+  --color-anil-600: #27357e;   /* primario */
+  --color-anil-800: #1b2559;
+  --color-anil-900: #131a40;
+
+  --color-balsamo-100: #e2efe6;
+  --color-balsamo-500: #3e6b4f; /* secundario */
+  --color-balsamo-700: #2c4f3a;
+
+  --color-cirio-100: #f8ecd6;
+  --color-cirio-500: #c98a2d;   /* acento */
+  --color-cirio-600: #a86f1e;
+
+  --color-papel: #faf7f2;       /* fondo principal */
+  --color-manta: #f1ece3;       /* superficie suave */
+  --color-tinta: #23222b;       /* texto */
+  --color-tinta-suave: #5c5a66;
+
+  --color-exito: #2e7d4f;
+  --color-error: #b3372f;
+  --color-aviso: #b07f1a;
+  --color-info: #2b5f9e;
+
+  /* Tipografía (cargada con next/font en layout.tsx) */
+  --font-display: var(--font-fraunces), Georgia, serif;
+  --font-sans: var(--font-instrument), system-ui, sans-serif;
+
+  --radius-card: 1.25rem;
+}
+
+:root {
+  color-scheme: light;
+}
+
+/* Modo oscuro opcional */
+.dark {
+  --color-papel: #16151c;
+  --color-manta: #201f28;
+  --color-tinta: #f0eee9;
+  --color-tinta-suave: #a5a3ae;
+  color-scheme: dark;
+}
+
+body {
+  background: var(--color-papel);
+  color: var(--color-tinta);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  /* Safe areas para Capacitor / PWA */
+  padding-top: env(safe-area-inset-top);
+}
+
+h1, h2, h3, .font-display {
+  font-family: var(--font-display);
+  letter-spacing: -0.01em;
+}
+
+/* Firma visual: banda de versículo estilo textil de añil */
+.verse-band {
+  background:
+    repeating-linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.04) 0 2px,
+      transparent 2px 6px
+    ),
+    linear-gradient(140deg, var(--color-anil-800), var(--color-anil-600) 55%, #33449b);
+  color: #f4f2ec;
+}
+
+/* Foco visible y accesible */
+:focus-visible {
+  outline: 3px solid var(--color-cirio-500);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Respeto a movimiento reducido */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Skeleton */
+@keyframes pulse-soft {
+  50% { opacity: 0.55; }
+}
+.skeleton {
+  background: var(--color-manta);
+  border-radius: 0.75rem;
+  animation: pulse-soft 1.6s ease-in-out infinite;
+}

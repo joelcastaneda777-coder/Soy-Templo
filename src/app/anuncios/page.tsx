@@ -1,0 +1,55 @@
+import type { Metadata } from "next";
+import { createClient } from "@/lib/supabase/server";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
+import { t } from "@/lib/i18n/es";
+import Link from "next/link";
+
+export const metadata: Metadata = { title: "Anuncios" };
+export const revalidate = 300;
+
+const categoryLabels: Record<string, string> = {
+  general: "Información general", jovenes: "Jóvenes", ninos: "Niños",
+  mujeres: "Mujeres", hombres: "Hombres", discipulado: "Discipulado",
+  servicio: "Servicio comunitario", creativo: "Ministerio creativo", especiales: "Actividades especiales",
+};
+
+export default async function AnnouncementsPage() {
+  const supabase = await createClient();
+  const now = new Date().toISOString();
+  const { data: announcements } = await supabase
+    .from("announcements")
+    .select("id, title, description, category, action_label, action_url, publish_at")
+    .eq("status", "published")
+    .lte("publish_at", now)
+    .or(`expires_at.is.null,expires_at.gte.${now}`)
+    .order("priority", { ascending: false })
+    .order("publish_at", { ascending: false });
+
+  return (
+    <div className="space-y-5">
+      <h1 className="font-display text-3xl font-semibold text-anil-800">{t.nav.announcements}</h1>
+      {announcements?.length ? (
+        <ul className="space-y-4">
+          {announcements.map((a) => (
+            <li key={a.id}>
+              <Card>
+                <Badge tone="anil">{categoryLabels[a.category] ?? a.category}</Badge>
+                <h2 className="mt-2 font-display text-xl font-semibold">{a.title}</h2>
+                <p className="mt-1 leading-relaxed text-tinta-suave">{a.description}</p>
+                {a.action_url && a.action_label ? (
+                  <Link href={a.action_url} className="mt-3 inline-block font-semibold text-anil-600">
+                    {a.action_label} →
+                  </Link>
+                ) : null}
+              </Card>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <EmptyState title="No hay anuncios por el momento." />
+      )}
+    </div>
+  );
+}

@@ -1,0 +1,14 @@
+{
+  "name": "Soy Templo",
+  "short_name": "Soy Templo",
+  "description": "Devocionales, planes bíblicos, eventos y comunidad de Soy Templo Internacional",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FAF7F2",
+  "theme_color": "#27357E",
+  "lang": "es",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
