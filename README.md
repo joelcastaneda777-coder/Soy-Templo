@@ -61,7 +61,41 @@ npm run db:types
 
 Esto genera `src/lib/database.types.ts`. Luego puedes tipar los clientes de Supabase con `createClient<Database>(...)`.
 
-## 7. Estructura del proyecto
+## 7. Nueva migración: Radio en línea
+
+Si ya ejecutaste `0001_initial_schema.sql` y `seed.sql` en un proyecto existente, entra al
+**SQL Editor** de Supabase y ejecuta también `supabase/migrations/0002_radio_settings.sql`.
+Esto agrega el ajuste `radio` (nombre, descripción y URL de transmisión) usado por la
+página `/radio`.
+
+### Conectar tu radio de Zeno FM
+
+1. Crea tu estación en [Zeno FM](https://zeno.fm) y copia el enlace de streaming directo
+   (normalmente algo como `https://stream.zeno.fm/xxxxxxxxxxxxx`).
+2. En el **SQL Editor** de Supabase, ejecuta:
+
+```sql
+update app_settings
+set value = jsonb_set(value, '{stream_url}', '"https://stream.zeno.fm/TU-ENLACE"')
+where key = 'radio';
+```
+
+3. Recarga `/radio` en la app — el reproductor aparecerá automáticamente. Mientras no
+   configures esta URL, la página muestra un mensaje de "próximamente" en vez de un error.
+
+## 8. Cargar devocionales por mes (con IA)
+
+En vez de escribir cada devocional a mano en SQL, el equipo puede generar un mes completo
+con Gemini (o cualquier IA) y subirlo desde el panel:
+
+1. Sigue la guía y el prompt listos para copiar en **`docs/plantilla-devocionales.md`**.
+2. Entra a `/admin/devocionales/importar` con una cuenta de rol `editor` o `admin`.
+3. Pega el Markdown generado (o sube el archivo `.md`) — verás una vista previa con
+   cualquier día que tenga campos faltantes, antes de publicar nada.
+4. Dale clic en "Confirmar e importar". Si vuelves a importar un archivo con la misma
+   fecha y título, actualiza ese devocional en vez de duplicarlo.
+
+## 9. Estructura del proyecto
 
 ```
 src/app/                  Rutas (App Router)
@@ -71,30 +105,48 @@ src/app/                  Rutas (App Router)
   anuncios/               Anuncios de la iglesia
   donar/                  Formulario de donación + webhook de confirmación
   oracion/                Peticiones de oración (moderadas) + "estoy orando"
+  radio/                  Reproductor de la radio en línea (Zeno FM u otro)
   auth/                   Login / registro
   mas/                    Menú "Más" (móvil)
   admin/                  Panel administrativo (protegido por rol)
+    devocionales/         Listado + importación masiva por Markdown
   api/payments/webhook/   Webhook de confirmación de pagos
 src/components/ui/        Botón, tarjeta, badge, inputs, skeleton, estado vacío
 src/components/layout/    Barra inferior (móvil) y navegación superior (escritorio)
 src/lib/supabase/         Clientes de Supabase (browser, server, middleware)
 src/lib/payments/         Interfaz PaymentProvider + proveedor simulado
+src/lib/devotionals/      Parser del formato Markdown para importación masiva
 src/lib/i18n/es.ts        Todos los textos de la interfaz (listo para agregar en.ts)
-supabase/                 Migración SQL + datos de ejemplo
+supabase/                 Migraciones SQL + datos de ejemplo
+docs/                     Plantilla y prompt de IA para generar devocionales
 ```
 
-## 8. Lo que falta por construir (próximas fases)
+## 10. Lo que falta por construir (próximas fases)
 
-- **Gestión de contenido en `/admin`**: crear/editar devocionales, planes, anuncios y eventos (el dashboard y el patrón de Server Actions + Zod ya están listos; solo falta repetir el patrón por sección).
-- **Páginas enlazadas desde "Más" aún no implementadas**: `/transmisiones`, `/favoritos`, `/progreso`, `/perfil`, `/configuracion`, `/acerca-de`.
-- **Notificaciones**: la tabla `notifications` y `notification_preferences` ya existen; falta la UI y el envío (Web Push / FCM al empaquetar con Capacitor).
+- **Gestión de contenido en `/admin`** para planes, anuncios y eventos (el patrón de
+  Server Actions + Zod ya está listo en devocionales; solo falta repetirlo).
+- **Páginas enlazadas desde "Más" aún no implementadas**: `/favoritos`, `/progreso`,
+  `/perfil`, `/configuracion`, `/acerca-de`.
+- **Editor de ajustes en `/admin/configuracion`** para cambiar la URL de radio y los datos
+  de la iglesia sin tocar SQL directamente.
+- **Notificaciones**: la tabla `notifications` y `notification_preferences` ya existen;
+  falta la UI y el envío (Web Push / FCM al empaquetar con Capacitor).
 - **Service worker de PWA** (offline básico, íconos reales en `public/icons/`).
-- **Conectar un proveedor de pago real** (Wompi, n1co, Stripe, PayPal): implementar la interfaz `PaymentProvider` en `src/lib/payments/` y registrar el proveedor en `src/lib/payments/index.ts`. La UI y el webhook no cambian.
-- **Empaquetado con Capacitor** para iOS/Android: `output: "export"` en `next.config.ts`, luego `npx cap add ios/android`.
+- **Conectar un proveedor de pago real** (Wompi, n1co, Stripe, PayPal): implementar la
+  interfaz `PaymentProvider` en `src/lib/payments/` y registrar el proveedor en
+  `src/lib/payments/index.ts`. La UI y el webhook no cambian.
+- **Empaquetado con Capacitor** para iOS/Android: `output: "export"` en `next.config.ts`,
+  luego `npx cap add ios/android`.
 
-## 9. Seguridad
+## 11. Seguridad
 
-- Row Level Security (RLS) está activo en todas las tablas: es la capa de seguridad primaria, no solo el middleware.
-- Los roles (`member`, `editor`, `admin`) viven en `user_roles`; `has_role()` e `is_staff()` son funciones de Postgres usadas tanto por las políticas RLS como por el middleware de Next.js.
-- El webhook de pagos usa el `service_role key` (solo servidor) y verifica la firma antes de procesar cualquier evento; una transacción `completed` nunca se vuelve a procesar (protección de duplicados por `reference_id`).
+- Row Level Security (RLS) está activo en todas las tablas: es la capa de seguridad
+  primaria, no solo el middleware.
+- Los roles (`member`, `editor`, `admin`) viven en `user_roles`; `has_role()` e
+  `is_staff()` son funciones de Postgres usadas tanto por las políticas RLS como por el
+  middleware de Next.js. La importación de devocionales también verifica el rol antes de
+  escribir en la base de datos.
+- El webhook de pagos usa el `service_role key` (solo servidor) y verifica la firma antes
+  de procesar cualquier evento; una transacción `completed` nunca se vuelve a procesar
+  (protección de duplicados por `reference_id`).
 - Ningún dato de tarjeta pasa por esta aplicación.
