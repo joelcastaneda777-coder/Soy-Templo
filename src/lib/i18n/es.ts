@@ -76,4 +76,11 @@ export const t = {
     loading: "Cargando…", error: "Algo salió mal. Intenta de nuevo.",
     back: "Volver", all: "Todos", by: "Por",
   },
+  radio: {
+    title: "Radio Soy Templo", play: "Reproducir", pause: "Pausar",
+    live: "En vivo", loading: "Conectando…",
+    error: "No pudimos conectar con la radio. Intenta de nuevo en un momento.",
+    unavailable: "La radio en línea estará disponible muy pronto.",
+    share: "Compartir",
+  },
 } as const;
