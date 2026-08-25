@@ -110,7 +110,7 @@ export default async function HomePage() {
         <QuickLink href="/donar" label={t.nav.donate} accent />
         <QuickLink href="/oracion" label={t.nav.prayer} />
         <QuickLink href="/planes" label={t.nav.plans} />
-        <QuickLink href="/anuncios" label={t.nav.announcements} />
+        <QuickLink href="/radio" label={t.radio.title} />
       </section>
     </div>
   );
