@@ -11,7 +11,7 @@ export default async function MorePage() {
   const links = [
     { href: "/donar", label: t.nav.donate },
     { href: "/oracion", label: t.nav.prayer },
-    { href: "/transmisiones", label: t.nav.streams },
+    { href: "/radio", label: t.nav.streams },
     { href: "/anuncios", label: t.nav.announcements },
     { href: "/favoritos", label: t.nav.favorites },
     { href: "/progreso", label: t.nav.progress },
