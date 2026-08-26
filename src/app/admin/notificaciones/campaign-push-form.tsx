@@ -9,7 +9,7 @@ export function CampaignPushForm({ categories }: { categories: { slug: string; n
   const [state, formAction, pending] = useActionState<CampaignPushState, FormData>(sendCampaignPush, {});
 
   return (
-    <form action={formAction} className="space-y-4 rounded-[--radius-card] border border-manta bg-white p-5 dark:bg-manta">
+    <form action={formAction} className="space-y-4 rounded-[var(--radius-card)] border border-manta bg-white p-5 dark:bg-manta">
       <Field label="Título de la notificación" htmlFor="title">
         <Input id="title" name="title" required maxLength={80} placeholder="Campaña de construcción" />
       </Field>
