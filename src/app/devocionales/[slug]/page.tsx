@@ -52,7 +52,7 @@ export default async function DevotionalPage({ params }: { params: Promise<{ slu
         </p>
       </header>
 
-      <div className="verse-band rounded-[--radius-card] p-6">
+      <div className="verse-band rounded-[var(--radius-card)] p-6">
         <p className="text-xs font-semibold uppercase tracking-wider text-cirio-100">
           {t.devotional.keyVerse}
         </p>
@@ -66,7 +66,7 @@ export default async function DevotionalPage({ params }: { params: Promise<{ slu
       </section>
 
       {devotional.application ? (
-        <section className="rounded-[--radius-card] bg-balsamo-100 p-5">
+        <section className="rounded-[var(--radius-card)] bg-balsamo-100 p-5">
           <h2 className="font-display text-lg font-semibold text-balsamo-700">
             {t.devotional.application}
           </h2>
