@@ -160,3 +160,88 @@ h1, h2, h3, .font-display {
   .glass, .glass-chip { background: rgba(255, 255, 255, 0.92); }
   .glass-dark { background: #0B2B26; }
 }
+
+/* ============================================================
+   Liquid Glass — sistema de superficies en capas
+   Inspirado en los principios de Apple Liquid Glass (materialidad,
+   profundidad, continuidad), reproducido con CSS puro para web.
+   Fase 1: usado solo en la navegación inferior. El resto de la app
+   sigue con los estilos anteriores hasta validar esta fase.
+   ============================================================ */
+
+.glass-surface {
+  position: relative;
+  isolation: isolate;
+  border-radius: inherit;
+  background: var(--lg-bg, linear-gradient(155deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.06)));
+  backdrop-filter: blur(var(--lg-blur, 22px)) saturate(var(--lg-saturate, 180%)) brightness(var(--lg-brightness, 1.04));
+  -webkit-backdrop-filter: blur(var(--lg-blur, 22px)) saturate(var(--lg-saturate, 180%)) brightness(var(--lg-brightness, 1.04));
+  border: 1px solid var(--lg-border, rgba(255, 255, 255, 0.22));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.12),
+    0 8px 28px rgba(5, 31, 32, 0.28);
+  transition: background 200ms ease, box-shadow 200ms ease, transform 150ms ease;
+}
+
+.glass-surface[data-variant="subtle"] {
+  --lg-blur: 12px;
+  --lg-bg: linear-gradient(155deg, rgba(255, 255, 255, 0.10), rgba(255, 255, 255, 0.03));
+  --lg-border: rgba(255, 255, 255, 0.16);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    0 4px 14px rgba(5, 31, 32, 0.16);
+}
+
+.glass-surface[data-variant="strong"] {
+  --lg-blur: 30px;
+  --lg-bg: linear-gradient(155deg, rgba(5, 31, 32, 0.78), rgba(5, 31, 32, 0.58));
+  --lg-border: rgba(218, 241, 222, 0.16);
+  color: var(--color-anil-50);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.28),
+    0 10px 34px rgba(0, 0, 0, 0.4);
+}
+
+.glass-surface[data-interactive="true"] {
+  cursor: pointer;
+}
+.glass-surface[data-interactive="true"]:active {
+  transform: scale(0.97);
+}
+
+/* Highlight superior-izquierdo: capa independiente que simula un
+   reflejo de luz sobre el vidrio, como pide la referencia de Apple. */
+.glass-highlight {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: radial-gradient(120% 60% at 15% 0%, rgba(255, 255, 255, 0.35), transparent 55%);
+  mix-blend-mode: overlay;
+  opacity: 0.85;
+}
+
+/* Píldora indicadora activa: se desliza entre pestañas (equivalente
+   web a glassEffectID / @Namespace de Apple, sin fusión de formas). */
+.glass-pill-indicator {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  left: 0;
+  border-radius: 999px;
+  background: rgba(238, 249, 240, 0.95);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+  transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1), width 220ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform, width;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .glass-surface, .glass-pill-indicator { transition: none; }
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass-surface { background: rgba(11, 43, 38, 0.94); }
+  .glass-surface[data-variant="subtle"] { background: rgba(255, 255, 255, 0.94); color: var(--color-tinta); }
+}
