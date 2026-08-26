@@ -2,7 +2,7 @@
   "name": "Soy Templo",
   "short_name": "Soy Templo",
   "description": "Devocionales, planes bíblicos, eventos y comunidad de Soy Templo Internacional",
-  "start_url": "/",
+  "start_url": "/?source=pwa",
   "display": "standalone",
   "background_color": "#eef9f0",
   "theme_color": "#163832",
