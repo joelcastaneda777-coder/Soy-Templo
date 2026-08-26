@@ -128,7 +128,7 @@ export function ImportForm() {
           </div>
 
           {parsed.devotionals.length > 0 ? (
-            <div className="overflow-x-auto rounded-[--radius-card] border border-manta">
+            <div className="overflow-x-auto rounded-[var(--radius-card)] border border-manta">
               <table className="w-full text-left text-sm">
                 <thead className="bg-manta text-tinta-suave">
                   <tr>
@@ -151,7 +151,7 @@ export function ImportForm() {
           ) : null}
 
           {parsed.issues.length > 0 ? (
-            <ul className="space-y-1 rounded-[--radius-card] border border-cirio-500/40 bg-cirio-100/60 p-4 text-sm">
+            <ul className="space-y-1 rounded-[var(--radius-card)] border border-cirio-500/40 bg-cirio-100/60 p-4 text-sm">
               {parsed.issues.map((issue, i) => (
                 <li key={i}>
                   <strong>{issue.date || "?"}</strong> — {issue.title || "(sin título)"}: {issue.message}
@@ -164,7 +164,7 @@ export function ImportForm() {
 
       {result?.error ? <p role="alert" className="text-sm text-error">{result.error}</p> : null}
       {result?.ok ? (
-        <p role="status" className="rounded-[--radius-card] bg-balsamo-100 p-4 text-sm font-semibold text-balsamo-700">
+        <p role="status" className="rounded-[var(--radius-card)] bg-balsamo-100 p-4 text-sm font-semibold text-balsamo-700">
           ¡Listo! Se publicaron {result.imported} devocionales.
         </p>
       ) : null}
