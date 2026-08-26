@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
+import { PageHero } from "@/components/layout/page-hero";
 import { t } from "@/lib/i18n/es";
 import { formatDate } from "@/lib/utils";
 
@@ -34,7 +35,7 @@ export default async function DevotionalsPage({
 
   return (
     <div className="space-y-5">
-      <h1 className="font-display text-3xl font-semibold text-anil-800">{t.nav.devotionals}</h1>
+      <PageHero title={t.nav.devotionals} />
 
       <form role="search" className="flex gap-2">
         <input
