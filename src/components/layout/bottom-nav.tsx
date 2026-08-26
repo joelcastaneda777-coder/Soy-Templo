@@ -20,10 +20,10 @@ export function BottomNav() {
   return (
     <nav
       aria-label="Navegación principal"
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-manta bg-white/95 backdrop-blur
-                 pb-[env(safe-area-inset-bottom)] md:hidden dark:bg-papel/95"
+      className="fixed inset-x-3 bottom-3 z-40 mx-auto max-w-lg
+                 pb-[env(safe-area-inset-bottom)] md:hidden"
     >
-      <ul className="mx-auto flex max-w-lg items-stretch justify-around">
+      <ul className="glass-dark flex items-stretch justify-around rounded-full px-1.5 py-1.5 shadow-lg">
         {items.map(({ href, label, icon: Icon }) => {
           const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
           return (
@@ -32,11 +32,11 @@ export function BottomNav() {
                 href={href}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex min-h-14 flex-col items-center justify-center gap-0.5 text-[11px] font-medium",
-                  active ? "text-anil-600" : "text-tinta-suave hover:text-tinta"
+                  "flex min-h-14 flex-col items-center justify-center gap-0.5 rounded-full text-[10px] font-medium transition-colors",
+                  active ? "bg-anil-50/90 text-anil-900" : "text-anil-50/75 hover:text-anil-50"
                 )}
               >
-                <Icon className="h-6 w-6" filled={active} />
+                <Icon className="h-5 w-5" filled={active} />
                 {label}
               </Link>
             </li>
@@ -61,7 +61,7 @@ function BookIcon({ className, filled }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" className={className} aria-hidden {...(filled ? { fill: "currentColor" } : stroke)}>
       <path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z" />
-      <path d="M4 19a2 2 0 0 1 2-2h13" fill="none" stroke={filled ? "var(--color-papel)" : "currentColor"} strokeWidth="1.8" />
+      <path d="M4 19a2 2 0 0 1 2-2h13" fill="none" stroke={filled ? "var(--color-anil-50)" : "currentColor"} strokeWidth="1.8" />
     </svg>
   );
 }
@@ -78,7 +78,7 @@ function CalendarIcon({ className, filled }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" className={className} aria-hidden {...stroke}>
       <rect x="3.5" y="5" width="17" height="16" rx="2.5" fill={filled ? "currentColor" : "none"} />
-      <path d="M3.5 9.5h17M8 3v4M16 3v4" stroke={filled ? "var(--color-papel)" : "currentColor"} />
+      <path d="M3.5 9.5h17M8 3v4M16 3v4" stroke={filled ? "var(--color-anil-50)" : "currentColor"} />
     </svg>
   );
 }
