@@ -20,6 +20,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     { href: "/admin/planes", label: "Planes bíblicos" },
     { href: "/admin/anuncios", label: "Anuncios" },
     { href: "/admin/eventos", label: "Eventos" },
+    { href: "/admin/sermones", label: "Sermones" },
+    { href: "/admin/notificaciones", label: "Notificaciones" },
     { href: "/admin/donaciones", label: "Donaciones" },
     { href: "/admin/oracion", label: "Peticiones" },
     { href: "/admin/usuarios", label: "Usuarios" },
