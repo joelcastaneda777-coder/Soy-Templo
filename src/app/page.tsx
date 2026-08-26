@@ -72,7 +72,7 @@ export default async function HomePage() {
 
         {devotional ? (
           <Link href={`/devocionales/${devotional.slug}`} className="block">
-            <div className="glass rounded-[--radius-card] p-6 text-anil-50">
+            <div className="glass rounded-[var(--radius-card)] p-6 text-anil-50">
               <p className="text-xs font-semibold uppercase tracking-wider text-cirio-100">
                 {t.home.todayDevotional}
               </p>
