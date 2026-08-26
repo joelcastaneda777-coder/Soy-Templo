@@ -14,7 +14,7 @@ export default function RegisterPage() {
     <div className="mx-auto max-w-sm py-8">
       <h1 className="font-display text-3xl font-semibold text-anil-800">{t.auth.register}</h1>
       {state.message ? (
-        <p role="status" className="mt-6 rounded-[--radius-card] bg-balsamo-100 p-5 text-balsamo-700">
+        <p role="status" className="mt-6 rounded-[var(--radius-card)] bg-balsamo-100 p-5 text-balsamo-700">
           {state.message}
         </p>
       ) : (
