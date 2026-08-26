@@ -111,3 +111,52 @@ h1, h2, h3, .font-display {
 .brand-logo-light { display: none; }
 .dark .brand-logo-dark { display: none; }
 .dark .brand-logo-light { display: block; }
+
+/* ============================================================
+   Vidrio esmerilado (glassmorphism)
+   Fondo con degradado + tarjetas y navegación flotante en vidrio.
+   El vidrio CLARO se usa sobre el degradado oscuro del hero (buena
+   lectura). El vidrio OSCURO es para navegación/chrome flotante,
+   siempre con texto claro, sin importar el tema del resto de la app.
+   ============================================================ */
+
+/* Fondo tipo "malla" para secciones hero — sustituye a las fotos
+   borrosas del ejemplo, usando los verdes de marca en su lugar. */
+.hero-mesh {
+  background:
+    radial-gradient(ellipse 120% 70% at 15% -10%, rgba(142, 182, 155, 0.45), transparent 60%),
+    radial-gradient(ellipse 90% 60% at 100% 0%, rgba(35, 83, 71, 0.55), transparent 55%),
+    linear-gradient(160deg, #163832 0%, #0B2B26 55%, #051F20 100%);
+}
+
+.glass {
+  background: rgba(255, 255, 255, 0.14);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  box-shadow: 0 8px 32px rgba(5, 31, 32, 0.25);
+}
+
+.glass-chip {
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(16px) saturate(160%);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+.glass-chip:active {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.glass-dark {
+  background: rgba(5, 31, 32, 0.62);
+  backdrop-filter: blur(22px) saturate(160%);
+  -webkit-backdrop-filter: blur(22px) saturate(160%);
+  border: 1px solid rgba(218, 241, 222, 0.14);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
+}
+
+/* Navegador sin soporte de backdrop-filter: respaldo sólido legible */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass, .glass-chip { background: rgba(255, 255, 255, 0.92); }
+  .glass-dark { background: #0B2B26; }
+}
