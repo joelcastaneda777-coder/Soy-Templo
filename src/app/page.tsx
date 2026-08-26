@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { createClient } from "@/lib/supabase/server";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -44,6 +45,24 @@ export default async function HomePage() {
 
   return (
     <div className="space-y-6">
+      <section className="pt-2 md:hidden">
+        <Image
+          src="/brand/logo.png"
+          alt=""
+          width={56}
+          height={52}
+          className="brand-logo-dark h-12 w-auto"
+          priority
+        />
+        <Image
+          src="/brand/logo-light.png"
+          alt=""
+          width={56}
+          height={52}
+          className="brand-logo-light h-12 w-auto"
+          priority
+        />
+      </section>
       <section className="pt-2">
         <p className="text-sm font-medium text-tinta-suave">{greetingByHour()}</p>
         <h1 className="font-display text-3xl font-semibold text-anil-800">{t.app.name}</h1>
@@ -122,7 +141,7 @@ function QuickLink({ href, label, accent }: { href: string; label: string; accen
       href={href}
       className={
         accent
-          ? "flex min-h-16 items-center justify-center rounded-[--radius-card] bg-cirio-500 font-semibold text-white shadow-sm hover:bg-cirio-600"
+          ? "flex min-h-16 items-center justify-center rounded-[--radius-card] bg-cirio-500 font-semibold text-anil-900 shadow-sm hover:brightness-95"
           : "flex min-h-16 items-center justify-center rounded-[--radius-card] border border-manta bg-white font-semibold text-anil-800 shadow-sm hover:border-anil-300 dark:bg-manta"
       }
     >
