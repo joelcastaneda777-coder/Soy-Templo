@@ -11,7 +11,7 @@ import { GlassPill } from "@/components/liquid-glass/GlassPill";
 
 const items = [
   { href: "/", key: "home", label: t.nav.home, icon: HomeIcon },
-  { href: "/devocionales", key: "devocionales", label: t.nav.devotionals, icon: BookIcon },
+  { href: "/devocionales", key: "devocionales", label: t.nav.devotionalsShort, icon: BookIcon },
   { href: "/planes", key: "planes", label: t.nav.plans, icon: PathIcon },
   { href: "/eventos", key: "eventos", label: t.nav.events, icon: CalendarIcon },
   { href: "/mas", key: "mas", label: t.nav.more, icon: DotsIcon },
