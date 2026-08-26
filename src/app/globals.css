@@ -1,33 +1,34 @@
 @import "tailwindcss";
 
 /* ============================================================
-   Soy Templo — Sistema visual "Añil y Cirio"
-   Primario: añil (índigo salvadoreño) · Secundario: verde bálsamo
-   Acento: dorado cirio · Neutros cálidos tipo manta
+   Soy Templo — Sistema visual "Verde Profundo"
+   Paleta monocromática verde bosque, de la marca de la iglesia:
+   desde el verde casi negro hasta el salvia pálido.
    ============================================================ */
 
 @theme {
-  /* Colores */
-  --color-anil-50: #eef1fb;
-  --color-anil-100: #d9defa;
-  --color-anil-300: #8d9ada;
-  --color-anil-500: #3d4fa8;
-  --color-anil-600: #27357e;   /* primario */
-  --color-anil-800: #1b2559;
-  --color-anil-900: #131a40;
+  /* Colores (nombres de token sin cambios para no romper componentes;
+     los valores ahora vienen de la paleta verde de marca) */
+  --color-anil-50: #eef9f0;
+  --color-anil-100: #DAF1DE;
+  --color-anil-300: #53806d;
+  --color-anil-500: #235347;
+  --color-anil-600: #163832;   /* primario */
+  --color-anil-800: #0B2B26;
+  --color-anil-900: #051F20;
 
-  --color-balsamo-100: #e2efe6;
-  --color-balsamo-500: #3e6b4f; /* secundario */
-  --color-balsamo-700: #2c4f3a;
+  --color-balsamo-100: #d2e2d7;
+  --color-balsamo-500: #235347; /* secundario */
+  --color-balsamo-700: #0B2B26;
 
-  --color-cirio-100: #f8ecd6;
-  --color-cirio-500: #c98a2d;   /* acento */
-  --color-cirio-600: #a86f1e;
+  --color-cirio-100: #b8d6c0;
+  --color-cirio-500: #8EB69B;   /* acento (claro: usa texto oscuro, ver button.tsx) */
+  --color-cirio-600: #235347;
 
-  --color-papel: #faf7f2;       /* fondo principal */
-  --color-manta: #f1ece3;       /* superficie suave */
-  --color-tinta: #23222b;       /* texto */
-  --color-tinta-suave: #5c5a66;
+  --color-papel: #eef9f0;       /* fondo principal */
+  --color-manta: #e3f4e6;       /* superficie suave */
+  --color-tinta: #051F20;       /* texto */
+  --color-tinta-suave: #425758;
 
   --color-exito: #2e7d4f;
   --color-error: #b3372f;
@@ -47,10 +48,10 @@
 
 /* Modo oscuro opcional */
 .dark {
-  --color-papel: #16151c;
-  --color-manta: #201f28;
-  --color-tinta: #f0eee9;
-  --color-tinta-suave: #a5a3ae;
+  --color-papel: #040D0E;
+  --color-manta: #0B2B26;
+  --color-tinta: #DAF1DE;
+  --color-tinta-suave: #98ada4;
   color-scheme: dark;
 }
 
@@ -68,7 +69,7 @@ h1, h2, h3, .font-display {
   letter-spacing: -0.01em;
 }
 
-/* Firma visual: banda de versículo estilo textil de añil */
+/* Firma visual: banda de versículo en degradado verde profundo */
 .verse-band {
   background:
     repeating-linear-gradient(
@@ -76,13 +77,13 @@ h1, h2, h3, .font-display {
       rgba(255, 255, 255, 0.04) 0 2px,
       transparent 2px 6px
     ),
-    linear-gradient(140deg, var(--color-anil-800), var(--color-anil-600) 55%, #33449b);
-  color: #f4f2ec;
+    linear-gradient(140deg, var(--color-anil-800), var(--color-anil-600) 55%, #588471);
+  color: var(--color-anil-50);
 }
 
 /* Foco visible y accesible */
 :focus-visible {
-  outline: 3px solid var(--color-cirio-500);
+  outline: 3px solid var(--color-anil-500);
   outline-offset: 2px;
   border-radius: 4px;
 }
@@ -104,3 +105,9 @@ h1, h2, h3, .font-display {
   border-radius: 0.75rem;
   animation: pulse-soft 1.6s ease-in-out infinite;
 }
+
+/* Logo: alterna automáticamente entre versión oscura y clara según el tema */
+.brand-logo-dark { display: block; }
+.brand-logo-light { display: none; }
+.dark .brand-logo-dark { display: none; }
+.dark .brand-logo-light { display: block; }
