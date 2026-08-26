@@ -24,7 +24,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#27357E",
+  themeColor: "#163832",
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover", // safe areas en iOS / Capacitor
