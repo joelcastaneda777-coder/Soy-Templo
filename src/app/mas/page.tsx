@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { t } from "@/lib/i18n/es";
 import { logout } from "@/app/auth/actions";
+import { NotificationSettings } from "@/components/notifications/notification-settings";
 
 export default async function MorePage() {
   const supabase = await createClient();
@@ -12,6 +13,7 @@ export default async function MorePage() {
     { href: "/donar", label: t.nav.donate },
     { href: "/oracion", label: t.nav.prayer },
     { href: "/radio", label: t.nav.streams },
+    { href: "/sermones", label: "Sermones" },
     { href: "/anuncios", label: t.nav.announcements },
     { href: "/favoritos", label: t.nav.favorites },
     { href: "/progreso", label: t.nav.progress },
@@ -23,6 +25,9 @@ export default async function MorePage() {
   return (
     <div className="mx-auto max-w-md space-y-4">
       <h1 className="font-display text-3xl font-semibold text-anil-800">{t.nav.more}</h1>
+
+      <NotificationSettings />
+
       <nav aria-label="Más opciones">
         <ul className="divide-y divide-manta overflow-hidden rounded-[--radius-card] border border-manta bg-white dark:bg-manta">
           {isStaff ? (
