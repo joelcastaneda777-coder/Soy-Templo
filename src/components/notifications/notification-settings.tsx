@@ -166,7 +166,7 @@ export function NotificationSettings() {
   }
 
   return (
-    <div className="space-y-4 rounded-[--radius-card] border border-manta bg-white p-5 dark:bg-manta">
+    <div className="space-y-4 rounded-[var(--radius-card)] border border-manta bg-white p-5 dark:bg-manta">
       <div>
         <h2 className="font-display text-lg font-semibold">{t.notifications.title}</h2>
         <p className="mt-1 text-sm text-tinta-suave">{t.notifications.intro}</p>
