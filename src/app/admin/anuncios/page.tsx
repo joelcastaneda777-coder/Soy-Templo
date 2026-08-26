@@ -1,0 +1,41 @@
+import type { Metadata } from "next";
+import { createClient } from "@/lib/supabase/server";
+import { AnnouncementForm } from "./announcement-form";
+
+export const metadata: Metadata = { title: "Anuncios · Panel" };
+
+export default async function AdminAnnouncementsPage() {
+  const supabase = await createClient();
+  const { data: announcements } = await supabase
+    .from("announcements")
+    .select("id,title,category,priority,publish_at,expires_at,status")
+    .is("deleted_at", null)
+    .order("publish_at", { ascending: false })
+    .limit(20);
+
+  return (
+    <div className="max-w-3xl space-y-6">
+      <div>
+        <h1 className="font-display text-2xl font-semibold text-anil-800">Anuncios</h1>
+        <p className="mt-1 text-sm text-tinta-suave">Crea anuncios inmediatos o prográmalos para que aparezcan más tarde automáticamente.</p>
+      </div>
+      <AnnouncementForm />
+      {announcements?.length ? (
+        <div className="space-y-3">
+          <h2 className="font-display text-xl font-semibold text-anil-800">Últimos anuncios</h2>
+          <ul className="space-y-2">
+            {announcements.map((a) => (
+              <li key={a.id} className="rounded-[var(--radius-card)] border border-manta bg-white p-4 text-sm dark:bg-manta">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <strong>{a.title}</strong>
+                  <span className="text-xs text-tinta-suave">Prioridad {a.priority}</span>
+                </div>
+                <p className="mt-1 text-xs text-tinta-suave">{a.category} · {new Date(a.publish_at).toLocaleString("es-SV", { timeZone: "America/El_Salvador" })}</p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+    </div>
+  );
+}
