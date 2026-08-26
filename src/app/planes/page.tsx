@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
+import { PageHero } from "@/components/layout/page-hero";
 import { t } from "@/lib/i18n/es";
 
 export const metadata: Metadata = { title: "Planes bíblicos" };
@@ -19,7 +20,7 @@ export default async function PlansPage() {
 
   return (
     <div className="space-y-5">
-      <h1 className="font-display text-3xl font-semibold text-anil-800">{t.nav.plans}</h1>
+      <PageHero title={t.nav.plans} />
       {plans?.length ? (
         <ul className="grid gap-4 md:grid-cols-2">
           {plans.map((plan) => (
