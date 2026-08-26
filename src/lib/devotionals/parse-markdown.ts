@@ -2,47 +2,12 @@
  * Parser del formato Markdown para devocionales mensuales.
  *
  * Diseñado para que el equipo de comunicaciones pueda generar un mes completo
- * con una IA (Gemini, ChatGPT, etc.) y pegarlo directamente en
+ * con una IA (Gemini, ChatGPT, Claude, etc.) y pegarlo directamente en
  * /admin/devocionales/importar sin tocar código ni SQL.
- *
- * Es una función pura (sin dependencias de Node ni de Supabase) para poder
- * usarse tanto en el cliente (vista previa instantánea) como en el servidor
- * (justo antes de insertar).
- *
- * Acepta DOS formatos de encabezado por día, indistintamente en el mismo archivo:
- *
- *  A) Con fecha explícita:
- *     ## 2026-01-01 — Un nuevo comienzo
- *
- *  B) Con número de día (útil cuando la IA no conoce el mes real):
- *     ## Día 1: Un nuevo comienzo
- *     En este caso se necesita indicar mes y año (parámetro `options`) para
- *     calcular la fecha real; si no se indican, el día queda como "pendiente"
- *     en `issues` en vez de perderse.
- *
- * Campos reconocidos (en cualquiera de estas variantes):
- *
- * **Lectura:** Génesis 1:1-5
- *
- * **Versículo clave:** "En el principio creó Dios los cielos y la tierra." (Génesis 1:1)
- *   — o, en su lugar, una cita en bloque justo después de la Lectura:
- *   > *"En el principio creó Dios los cielos y la tierra."*
- *
- * **Reflexión:** (o **Devocional:**)
- * Uno o más párrafos...
- *
- * **Aplicación:** Texto breve de aplicación práctica. (opcional)
- *
- * **Preguntas:** (opcional)
- * - ¿Pregunta uno?
- *
- * **Oración:** Texto de la oración final.
- *
- * ---
  */
 
 export type ParsedDevotional = {
-  date: string; // YYYY-MM-DD
+  date: string;
   title: string;
   slug: string;
   bibleReading: string;
@@ -56,9 +21,7 @@ export type ParsedDevotional = {
 export type ParseIssue = { date: string; title: string; message: string };
 
 export type ParseOptions = {
-  /** Mes de publicación (1-12), usado solo para encabezados de tipo "Día N". */
   month?: number;
-  /** Año de publicación, usado solo para encabezados de tipo "Día N". */
   year?: number;
 };
 
@@ -67,33 +30,34 @@ export type ParseResult = {
   issues: ParseIssue[];
 };
 
-const HEADER_DATE_RE = /^##\s+(\d{4}-\d{2}-\d{2})\s*(?:—|-|:)\s*(.+?)\s*$/;
-const HEADER_DAY_RE = /^##\s+D[ií]a\s+(\d{1,3})\s*(?:[:—-])\s*(.+?)\s*$/i;
-const READING_RE = /^\*\*Lectura:\*\*\s*(.*)$/i;
-const VERSE_RE = /^\*\*Vers[íi]culo clave:\*\*\s*(.*)$/i;
-const REFLECTION_RE = /^\*\*(?:Reflexi[óo]n|Devocional):\*\*\s*(.*)$/i;
-const APPLICATION_RE = /^\*\*Aplicaci[óo]n:\*\*\s*(.*)$/i;
-const QUESTIONS_RE = /^\*\*Preguntas:\*\*\s*$/i;
-const PRAYER_RE = /^\*\*Oraci[óo]n:\*\*\s*(.*)$/i;
-const QUESTION_ITEM_RE = /^\s*-\s+(.+)$/;
+// Acepta ## o ###, fechas explícitas y "Día N" con :, -, – o —.
+const HEADER_DATE_RE = /^#{2,3}\s+(\d{4}-\d{2}-\d{2})\s*(?:—|–|-|:)\s*(.+?)\s*$/;
+const HEADER_DAY_RE = /^#{2,3}\s+D[ií]a\s+(\d{1,3})\s*(?:[:—–-])\s*(.+?)\s*$/i;
+
+// Tolera etiquetas comunes producidas por distintas IAs.
+const READING_RE = /^\*{0,2}(?:Lectura(?:\s+b[ií]blica)?|Texto(?:\s+b[ií]blico)?):\*{0,2}\s*(.*)$/i;
+const VERSE_RE = /^\*{0,2}(?:Vers[íi]culo(?:\s+clave)?|Texto\s+clave):\*{0,2}\s*(.*)$/i;
+const REFLECTION_RE = /^\*{0,2}(?:Reflexi[óo]n|Devocional|Meditaci[óo]n):\*{0,2}\s*(.*)$/i;
+const APPLICATION_RE = /^\*{0,2}(?:Aplicaci[óo]n|Aplicaci[óo]n\s+pr[áa]ctica):\*{0,2}\s*(.*)$/i;
+const QUESTIONS_RE = /^\*{0,2}(?:Preguntas|Preguntas\s+de\s+reflexi[óo]n):\*{0,2}\s*$/i;
+const PRAYER_RE = /^\*{0,2}(?:Oraci[óo]n|Oraci[óo]n\s+final|Oraci[óo]n\s+de\s+cierre):\*{0,2}\s*(.*)$/i;
+const QUESTION_ITEM_RE = /^\s*[-*]\s+(.+)$/;
 const BLOCKQUOTE_RE = /^>\s*(.*)$/;
 
 function slugify(input: string): string {
   return input
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "") // quita acentos
+    .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .slice(0, 60);
 }
 
-/** Quita asteriscos de énfasis (*texto*, **texto**) que dejan algunos editores en las citas. */
 function stripEmphasis(input: string): string {
   return input.trim().replace(/^\*+/, "").replace(/\*+$/, "").trim();
 }
 
-/** Une líneas acumuladas en párrafos, colapsando espacios extra pero respetando saltos entre párrafos. */
 function joinParagraphs(lines: string[]): string {
   return lines
     .join("\n")
@@ -101,7 +65,6 @@ function joinParagraphs(lines: string[]): string {
     .trim();
 }
 
-/** Calcula AAAA-MM-DD a partir de un número de día + mes/año, validando que el día exista en ese mes. */
 function resolveDateFromDay(day: number, month: number, year: number): string | null {
   const mm = String(month).padStart(2, "0");
   const dd = String(day).padStart(2, "0");
@@ -152,18 +115,13 @@ export function parseDevotionalsMarkdown(markdown: string, options: ParseOptions
     if (!blockOpen) return;
 
     const title = blockTitle.trim();
-
-    // Resolver la fecha real: explícita, o calculada desde "Día N" + mes/año.
     let date: string | null = explicitDate;
+
     if (date === null && dayNumber !== null) {
       if (options.month && options.year) {
         date = resolveDateFromDay(dayNumber, options.month, options.year);
         if (date === null) {
-          issues.push({
-            date: `Día ${dayNumber}`,
-            title,
-            message: `El día ${dayNumber} no existe en el mes/año seleccionado.`,
-          });
+          issues.push({ date: `Día ${dayNumber}`, title, message: `El día ${dayNumber} no existe en el mes/año seleccionado.` });
           resetBlock();
           return;
         }
@@ -177,6 +135,7 @@ export function parseDevotionalsMarkdown(markdown: string, options: ParseOptions
         return;
       }
     }
+
     if (date === null) {
       resetBlock();
       return;
@@ -187,6 +146,7 @@ export function parseDevotionalsMarkdown(markdown: string, options: ParseOptions
     const closingPrayer = joinParagraphs(prayerLines);
 
     const missing: string[] = [];
+    if (!title) missing.push("Título");
     if (!reading.trim()) missing.push("Lectura");
     if (!verse.trim()) missing.push("Versículo clave");
     if (!reflection) missing.push("Reflexión");
@@ -236,7 +196,7 @@ export function parseDevotionalsMarkdown(markdown: string, options: ParseOptions
       continue;
     }
 
-    if (!blockOpen) continue; // texto antes del primer encabezado (introducción, notas) — se ignora
+    if (!blockOpen) continue;
 
     if (line.trim() === "---") {
       current = null;
@@ -248,22 +208,26 @@ export function parseDevotionalsMarkdown(markdown: string, options: ParseOptions
     if (readingMatch) {
       reading = stripEmphasis(readingMatch[1] ?? "");
       current = null;
-      awaitingVerseQuote = true; // la siguiente cita en bloque, si existe, será el versículo
+      awaitingVerseQuote = true;
       continue;
     }
 
-    // Cita en bloque usada como versículo clave (formato alternativo de IA)
     if (awaitingVerseQuote && !verse.trim()) {
       const quoteMatch = line.match(BLOCKQUOTE_RE);
       if (quoteMatch) {
         verse = stripEmphasis(quoteMatch[1] ?? "");
         continue;
       }
-      if (line.trim() !== "") awaitingVerseQuote = false; // otra cosa empezó; ya no esperamos la cita
+      if (line.trim() !== "") awaitingVerseQuote = false;
     }
 
     const verseMatch = line.match(VERSE_RE);
-    if (verseMatch) { verse = stripEmphasis(verseMatch[1] ?? ""); current = null; awaitingVerseQuote = false; continue; }
+    if (verseMatch) {
+      verse = stripEmphasis(verseMatch[1] ?? "");
+      current = null;
+      awaitingVerseQuote = false;
+      continue;
+    }
 
     const reflectionMatch = line.match(REFLECTION_RE);
     if (reflectionMatch) {
@@ -281,8 +245,11 @@ export function parseDevotionalsMarkdown(markdown: string, options: ParseOptions
       continue;
     }
 
-    const questionsMatch = line.match(QUESTIONS_RE);
-    if (questionsMatch) { current = "questions"; awaitingVerseQuote = false; continue; }
+    if (line.match(QUESTIONS_RE)) {
+      current = "questions";
+      awaitingVerseQuote = false;
+      continue;
+    }
 
     const prayerMatch = line.match(PRAYER_RE);
     if (prayerMatch) {
@@ -304,6 +271,5 @@ export function parseDevotionalsMarkdown(markdown: string, options: ParseOptions
   }
 
   flush();
-
   return { devotionals, issues };
 }
