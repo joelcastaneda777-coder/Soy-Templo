@@ -13,14 +13,14 @@ export function PrayerForm() {
 
   if (state.ok) {
     return (
-      <p role="status" className="rounded-[--radius-card] bg-balsamo-100 p-5 text-center font-display text-balsamo-700">
+      <p role="status" className="rounded-[var(--radius-card)] bg-balsamo-100 p-5 text-center font-display text-balsamo-700">
         {t.prayer.sent}
       </p>
     );
   }
 
   return (
-    <form action={formAction} className="space-y-4 rounded-[--radius-card] border border-manta bg-white p-5 dark:bg-manta">
+    <form action={formAction} className="space-y-4 rounded-[var(--radius-card)] border border-manta bg-white p-5 dark:bg-manta">
       <Field label={t.prayer.body} htmlFor="body">
         <Textarea id="body" name="body" required minLength={10} maxLength={2000} />
       </Field>
