@@ -51,25 +51,26 @@ export function ImportForm() {
   const expectedDays = daysInMonth(month, year);
   const monthPrefix = `${year}-${String(month).padStart(2, "0")}-`;
 
+  const selectedDevotionals = useMemo(
+    () => parsed.devotionals.filter((devotional) => devotional.date.startsWith(monthPrefix)),
+    [parsed.devotionals, monthPrefix]
+  );
+
   const coverage = useMemo(() => {
     const days = new Set<number>();
-    let outsideSelectedMonth = 0;
 
-    for (const devotional of parsed.devotionals) {
-      if (!devotional.date.startsWith(monthPrefix)) {
-        outsideSelectedMonth += 1;
-        continue;
-      }
+    for (const devotional of selectedDevotionals) {
       const day = Number(devotional.date.slice(-2));
       if (day >= 1 && day <= expectedDays) days.add(day);
     }
 
     const missingDays = Array.from({ length: expectedDays }, (_, i) => i + 1).filter((day) => !days.has(day));
+    const outsideSelectedMonth = parsed.devotionals.length - selectedDevotionals.length;
     return { days, missingDays, outsideSelectedMonth };
-  }, [parsed.devotionals, monthPrefix, expectedDays]);
+  }, [parsed.devotionals.length, selectedDevotionals, expectedDays]);
 
   const isCompleteMonth = coverage.days.size === expectedDays && parsed.issues.length === 0;
-  const canImport = parsed.devotionals.length > 0 && (isCompleteMonth || allowPartial);
+  const canImport = selectedDevotionals.length > 0 && (isCompleteMonth || allowPartial);
 
   function handleFile(file: File) {
     const reader = new FileReader();
@@ -96,7 +97,7 @@ export function ImportForm() {
     if (!canImport) return;
     setResult(null);
     startTransition(async () => {
-      const res = await importDevotionals(parsed.devotionals);
+      const res = await importDevotionals(selectedDevotionals);
       setResult(res);
       if (res.ok) {
         setMarkdown("");
@@ -199,8 +200,8 @@ export function ImportForm() {
             </div>
             <div className="rounded-[var(--radius-card)] border border-manta p-4">
               <p className="text-xs font-semibold uppercase tracking-wide text-tinta-suave">Válidos</p>
-              <p className="mt-1 text-xl font-semibold text-balsamo-700">{parsed.devotionals.length}</p>
-              <p className="text-xs text-tinta-suave">listos para importar</p>
+              <p className="mt-1 text-xl font-semibold text-balsamo-700">{selectedDevotionals.length}</p>
+              <p className="text-xs text-tinta-suave">del mes seleccionado</p>
             </div>
             <div className="rounded-[var(--radius-card)] border border-manta p-4">
               <p className="text-xs font-semibold uppercase tracking-wide text-tinta-suave">Problemas</p>
@@ -223,7 +224,7 @@ export function ImportForm() {
               ) : null}
               {coverage.outsideSelectedMonth > 0 ? (
                 <p className="mt-1 text-tinta-suave">
-                  Hay {coverage.outsideSelectedMonth} devocional(es) con fecha fuera de {MONTHS[month - 1]} {year}.
+                  Se ignorarán {coverage.outsideSelectedMonth} devocional(es) cuya fecha está fuera de {MONTHS[month - 1]} {year}.
                 </p>
               ) : null}
               <label className="mt-3 flex items-start gap-2 font-medium">
@@ -234,14 +235,14 @@ export function ImportForm() {
                   className="mt-1"
                 />
                 <span>
-                  Importar solo los {parsed.devotionals.length} devocionales válidos de esta carga.
+                  Importar solo los {selectedDevotionals.length} devocionales válidos de {MONTHS[month - 1]}.
                   Úsalo, por ejemplo, para completar únicamente los días restantes de un mes.
                 </span>
               </label>
             </div>
           )}
 
-          {parsed.devotionals.length > 0 ? (
+          {selectedDevotionals.length > 0 ? (
             <div className="overflow-x-auto rounded-[var(--radius-card)] border border-manta">
               <table className="w-full text-left text-sm">
                 <thead className="bg-manta text-tinta-suave">
@@ -252,7 +253,7 @@ export function ImportForm() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-manta">
-                  {parsed.devotionals.map((d) => (
+                  {selectedDevotionals.map((d) => (
                     <tr key={d.slug}>
                       <td className="whitespace-nowrap px-4 py-2">{formatDate(`${d.date}T12:00:00`)}</td>
                       <td className="px-4 py-2">{d.title}</td>
@@ -290,8 +291,8 @@ export function ImportForm() {
         className="w-full sm:w-auto"
       >
         {pending ? "Publicando…" : isCompleteMonth
-          ? `Publicar mes completo (${parsed.devotionals.length})`
-          : `Importar ${parsed.devotionals.length || ""} devocionales`}
+          ? `Publicar mes completo (${selectedDevotionals.length})`
+          : `Importar ${selectedDevotionals.length || ""} devocionales`}
       </Button>
     </div>
   );
