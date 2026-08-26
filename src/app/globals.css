@@ -172,7 +172,6 @@ h1, h2, h3, .font-display {
 .glass-surface {
   position: relative;
   isolation: isolate;
-  border-radius: inherit;
   background: var(--lg-bg, linear-gradient(155deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.06)));
   backdrop-filter: blur(var(--lg-blur, 22px)) saturate(var(--lg-saturate, 180%)) brightness(var(--lg-brightness, 1.04));
   -webkit-backdrop-filter: blur(var(--lg-blur, 22px)) saturate(var(--lg-saturate, 180%)) brightness(var(--lg-brightness, 1.04));
