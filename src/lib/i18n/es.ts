@@ -83,4 +83,18 @@ export const t = {
     unavailable: "La radio en línea estará disponible muy pronto.",
     share: "Compartir",
   },
+  notifications: {
+    title: "Notificaciones", enable: "Activar notificaciones", disable: "Desactivar notificaciones",
+    enabling: "Activando…",
+    intro: "Recibe avisos directo en tu teléfono o computadora, sin necesidad de una cuenta.",
+    unsupported: "Tu navegador no admite notificaciones push.",
+    iosHint: "En iPhone: agrega esta app a tu pantalla de inicio para poder recibir notificaciones (Compartir → Agregar a inicio).",
+    blocked: "Bloqueaste las notificaciones para este sitio. Actívalas desde los ajustes de tu navegador.",
+    categories: {
+      devotional: "Nuevo devocional", verse: "Versículo del día", events: "Eventos y recordatorios",
+      sermons: "Nuevos sermones", campaigns: "Campañas de donación",
+    },
+    enabled: "Notificaciones activadas",
+    error: "No pudimos activar las notificaciones. Intenta de nuevo.",
+  },
 } as const;
