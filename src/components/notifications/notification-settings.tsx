@@ -76,7 +76,11 @@ export function NotificationSettings() {
     setPending(true);
     setError(null);
     try {
-      if (!VAPID_PUBLIC_KEY) throw new Error("no-vapid-key");
+      if (!VAPID_PUBLIC_KEY) {
+        setError("Falta configurar la clave de notificaciones en el servidor (NEXT_PUBLIC_VAPID_PUBLIC_KEY).");
+        setPending(false);
+        return;
+      }
 
       const permissionResult = await Notification.requestPermission();
       setPermission(permissionResult);
@@ -106,12 +110,17 @@ export function NotificationSettings() {
           preferences: prefs,
         }),
       });
-      if (!res.ok) throw new Error("subscribe-failed");
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error || "subscribe-failed");
+      }
 
       setSubscribed(true);
       setEndpoint(subscription.endpoint);
-    } catch {
-      setError(t.notifications.error);
+    } catch (err) {
+      setError(err instanceof Error && err.message && !err.message.includes("subscribe-failed")
+        ? err.message
+        : t.notifications.error);
     } finally {
       setPending(false);
     }
