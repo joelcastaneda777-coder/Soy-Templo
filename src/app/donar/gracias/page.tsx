@@ -4,7 +4,7 @@ import Link from "next/link";
 export default function ThanksPage() {
   return (
     <div className="mx-auto max-w-md py-16 text-center">
-      <div className="verse-band mx-auto rounded-[--radius-card] p-8">
+      <div className="verse-band mx-auto rounded-[var(--radius-card)] p-8">
         <p className="font-display text-2xl">{t.donate.thanks}</p>
       </div>
       <p className="mt-4 text-sm text-tinta-suave">
