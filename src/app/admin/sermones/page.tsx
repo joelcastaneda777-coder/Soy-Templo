@@ -24,7 +24,7 @@ export default async function AdminSermonsPage() {
       </div>
 
       {sermons?.length ? (
-        <div className="overflow-x-auto rounded-[--radius-card] border border-manta">
+        <div className="overflow-x-auto rounded-[var(--radius-card)] border border-manta">
           <table className="w-full text-left text-sm">
             <thead className="bg-manta text-tinta-suave">
               <tr>
