@@ -37,6 +37,12 @@ export async function importPlans(rows: ParsedPlan[]): Promise<ImportPlansState>
   const { data: isStaff } = await supabase.rpc("is_staff");
   if (!isStaff) return { error: "No tienes permiso para publicar planes." };
 
+  const { data: defaultAuthor } = await supabase
+    .from("authors")
+    .select("id")
+    .eq("display_name", "Pastores Soy Templo")
+    .maybeSingle();
+
   let imported = 0;
   for (const plan of parsed.data) {
     const { data: existing } = await supabase
@@ -59,12 +65,16 @@ export async function importPlans(rows: ParsedPlan[]): Promise<ImportPlansState>
         level: plan.level,
         topic: plan.topic,
         status: "published",
-        author_id: user.id,
+        author_id: defaultAuthor?.id ?? null,
       })
       .select("id")
       .single();
 
-    if (planError || !savedPlan) return { error: `No se pudo guardar el plan ${plan.name}.` };
+    if (planError || !savedPlan) {
+      return {
+        error: `No se pudo guardar el plan “${plan.name}”.${planError?.message ? ` ${planError.message}` : ""}`,
+      };
+    }
 
     const { error: lessonsError } = await supabase.from("bible_plan_lessons").insert(
       plan.lessons.map((lesson) => ({
@@ -80,7 +90,9 @@ export async function importPlans(rows: ParsedPlan[]): Promise<ImportPlansState>
     );
     if (lessonsError) {
       await supabase.from("bible_plans").delete().eq("id", savedPlan.id);
-      return { error: `No se pudieron guardar las lecciones de ${plan.name}.` };
+      return {
+        error: `No se pudieron guardar las lecciones de “${plan.name}”. ${lessonsError.message}`,
+      };
     }
     imported += 1;
   }
