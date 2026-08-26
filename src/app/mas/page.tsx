@@ -29,7 +29,7 @@ export default async function MorePage() {
       <NotificationSettings />
 
       <nav aria-label="Más opciones">
-        <ul className="divide-y divide-manta overflow-hidden rounded-[--radius-card] border border-manta bg-white dark:bg-manta">
+        <ul className="divide-y divide-manta overflow-hidden rounded-[var(--radius-card)] border border-manta bg-white dark:bg-manta">
           {isStaff ? (
             <li>
               <Link href="/admin" className="flex min-h-14 items-center px-5 font-semibold text-anil-600">
@@ -48,14 +48,14 @@ export default async function MorePage() {
       </nav>
       {user ? (
         <form action={logout}>
-          <button className="w-full rounded-[--radius-card] border border-manta bg-white p-4 font-semibold text-error dark:bg-manta">
+          <button className="w-full rounded-[var(--radius-card)] border border-manta bg-white p-4 font-semibold text-error dark:bg-manta">
             {t.auth.logout}
           </button>
         </form>
       ) : (
         <Link
           href="/auth/login"
-          className="block rounded-[--radius-card] bg-anil-600 p-4 text-center font-semibold text-white"
+          className="block rounded-[var(--radius-card)] bg-anil-600 p-4 text-center font-semibold text-white"
         >
           {t.auth.login}
         </Link>
