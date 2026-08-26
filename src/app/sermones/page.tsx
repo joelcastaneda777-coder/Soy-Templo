@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
+import { PageHero } from "@/components/layout/page-hero";
 import { formatDate } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Sermones" };
@@ -17,7 +18,7 @@ export default async function SermonsPage() {
 
   return (
     <div className="space-y-5">
-      <h1 className="font-display text-3xl font-semibold text-anil-800">Sermones</h1>
+      <PageHero title="Sermones" />
       {sermons?.length ? (
         <ul className="space-y-4">
           {sermons.map((s) => (
