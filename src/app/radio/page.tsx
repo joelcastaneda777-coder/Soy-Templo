@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
+import { PageHero } from "@/components/layout/page-hero";
 import { t } from "@/lib/i18n/es";
 import { RadioPlayer } from "./radio-player";
 
@@ -13,17 +14,12 @@ export default async function RadioPage() {
   const radio = (data?.value as RadioSettings | null) ?? {};
 
   return (
-    <div className="mx-auto max-w-lg space-y-6 py-4">
-      <header className="text-center">
-        <h1 className="font-display text-3xl font-semibold text-anil-800">
-          {radio.name || t.radio.title}
-        </h1>
-        {radio.description ? (
-          <p className="mt-2 text-tinta-suave">{radio.description}</p>
-        ) : null}
-      </header>
+    <div className="space-y-6">
+      <PageHero title={radio.name || t.radio.title} subtitle={radio.description} />
 
-      <RadioPlayer streamUrl={radio.stream_url ?? null} stationName={radio.name || t.radio.title} />
+      <div className="mx-auto max-w-lg py-4">
+        <RadioPlayer streamUrl={radio.stream_url ?? null} stationName={radio.name || t.radio.title} />
+      </div>
     </div>
   );
 }
