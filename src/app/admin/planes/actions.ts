@@ -39,9 +39,19 @@ export async function importPlans(rows: ParsedPlan[]): Promise<ImportPlansState>
 
   let imported = 0;
   for (const plan of parsed.data) {
+    const { data: existing } = await supabase
+      .from("bible_plans")
+      .select("id")
+      .eq("slug", plan.slug)
+      .maybeSingle();
+
+    if (existing) {
+      return { error: `Ya existe un plan llamado “${plan.name}”. Cambia el nombre antes de importarlo para no borrar el progreso de usuarios.` };
+    }
+
     const { data: savedPlan, error: planError } = await supabase
       .from("bible_plans")
-      .upsert({
+      .insert({
         slug: plan.slug,
         name: plan.name,
         description: plan.description,
@@ -50,14 +60,11 @@ export async function importPlans(rows: ParsedPlan[]): Promise<ImportPlansState>
         topic: plan.topic,
         status: "published",
         author_id: user.id,
-      }, { onConflict: "slug" })
+      })
       .select("id")
       .single();
 
     if (planError || !savedPlan) return { error: `No se pudo guardar el plan ${plan.name}.` };
-
-    const { error: deleteError } = await supabase.from("bible_plan_lessons").delete().eq("plan_id", savedPlan.id);
-    if (deleteError) return { error: `No se pudieron actualizar las lecciones de ${plan.name}.` };
 
     const { error: lessonsError } = await supabase.from("bible_plan_lessons").insert(
       plan.lessons.map((lesson) => ({
@@ -71,7 +78,10 @@ export async function importPlans(rows: ParsedPlan[]): Promise<ImportPlansState>
         prayer: lesson.prayer || null,
       }))
     );
-    if (lessonsError) return { error: `No se pudieron guardar las lecciones de ${plan.name}.` };
+    if (lessonsError) {
+      await supabase.from("bible_plans").delete().eq("id", savedPlan.id);
+      return { error: `No se pudieron guardar las lecciones de ${plan.name}.` };
+    }
     imported += 1;
   }
 
