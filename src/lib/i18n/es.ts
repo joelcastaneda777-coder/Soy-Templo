@@ -6,7 +6,7 @@
 export const t = {
   app: { name: "Soy Templo", tagline: "Una casa para encontrarte con Dios" },
   nav: {
-    home: "Inicio", devotionals: "Devocionales", plans: "Planes",
+    home: "Inicio", devotionals: "Devocionales", devotionalsShort: "Devo", plans: "Planes",
     events: "Eventos", more: "Más", announcements: "Anuncios",
     donate: "Donar", prayer: "Oración", streams: "Transmisiones",
     favorites: "Favoritos", progress: "Mi progreso", profile: "Perfil",
