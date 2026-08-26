@@ -112,7 +112,7 @@ export function PlanLessons({
       )}
 
       {isDone ? (
-        <p role="status" className="rounded-[--radius-card] bg-cirio-100 p-4 text-center font-display text-cirio-600">
+        <p role="status" className="rounded-[var(--radius-card)] bg-cirio-100 p-4 text-center font-display text-cirio-600">
           {t.plans.congrats}
         </p>
       ) : null}
@@ -124,7 +124,7 @@ export function PlanLessons({
           const done = completed.has(lesson.id);
           const open = openLesson === lesson.id;
           return (
-            <li key={lesson.id} className="overflow-hidden rounded-[--radius-card] border border-manta bg-white dark:bg-manta">
+            <li key={lesson.id} className="overflow-hidden rounded-[var(--radius-card)] border border-manta bg-white dark:bg-manta">
               <button
                 onClick={() => setOpenLesson(open ? null : lesson.id)}
                 aria-expanded={open}
