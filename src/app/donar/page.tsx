@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
+import { PageHero } from "@/components/layout/page-hero";
 import { t } from "@/lib/i18n/es";
 import { DonationForm } from "./donation-form";
 
@@ -14,16 +15,16 @@ export default async function DonatePage() {
     .order("name");
 
   return (
-    <div className="mx-auto max-w-xl space-y-5">
-      <header>
-        <h1 className="font-display text-3xl font-semibold text-anil-800">{t.donate.title}</h1>
-        <p className="mt-2 leading-relaxed text-tinta-suave">{t.donate.intro}</p>
-      </header>
-      <DonationForm categories={categories ?? []} />
-      <p className="text-sm text-tinta-suave">{t.donate.bank}</p>
-      <p className="text-xs text-tinta-suave">
-        Los pagos se procesan mediante un proveedor certificado. Soy Templo no almacena datos de tarjetas.
-      </p>
+    <div className="space-y-5">
+      <PageHero title={t.donate.title} subtitle={t.donate.intro} />
+
+      <div className="mx-auto max-w-xl space-y-5">
+        <DonationForm categories={categories ?? []} />
+        <p className="text-sm text-tinta-suave">{t.donate.bank}</p>
+        <p className="text-xs text-tinta-suave">
+          Los pagos se procesan mediante un proveedor certificado. Soy Templo no almacena datos de tarjetas.
+        </p>
+      </div>
     </div>
   );
 }
