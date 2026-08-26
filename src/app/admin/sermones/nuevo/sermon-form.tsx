@@ -9,7 +9,7 @@ export function SermonForm() {
   const [state, formAction, pending] = useActionState<SermonFormState, FormData>(createSermon, {});
 
   return (
-    <form action={formAction} className="space-y-4 rounded-[--radius-card] border border-manta bg-white p-5 dark:bg-manta">
+    <form action={formAction} className="space-y-4 rounded-[var(--radius-card)] border border-manta bg-white p-5 dark:bg-manta">
       <Field label="Título" htmlFor="title">
         <Input id="title" name="title" required minLength={3} placeholder="El amor que transforma" />
       </Field>
