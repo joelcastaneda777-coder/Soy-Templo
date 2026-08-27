@@ -12,6 +12,7 @@ type Prefs = {
   notify_events: boolean;
   notify_sermons: boolean;
   notify_campaigns: boolean;
+  notify_prayer: boolean;
 };
 
 const defaultPrefs: Prefs = {
@@ -20,6 +21,7 @@ const defaultPrefs: Prefs = {
   notify_events: true,
   notify_sermons: true,
   notify_campaigns: true,
+  notify_prayer: true,
 };
 
 const categoryLabels: { key: keyof Prefs; label: string }[] = [
@@ -27,6 +29,7 @@ const categoryLabels: { key: keyof Prefs; label: string }[] = [
   { key: "notify_verse", label: t.notifications.categories.verse },
   { key: "notify_events", label: t.notifications.categories.events },
   { key: "notify_sermons", label: t.notifications.categories.sermons },
+  { key: "notify_prayer", label: "Oraciones de la comunidad" },
   { key: "notify_campaigns", label: t.notifications.categories.campaigns },
 ];
 
@@ -74,7 +77,7 @@ export function NotificationSettings() {
         const res = await fetch(`/api/push/preferences?endpoint=${encodeURIComponent(existing.endpoint)}`, { cache: "no-store" });
         if (!res.ok) return;
         const data = await res.json();
-        if (data?.preferences) setPrefs(data.preferences as Prefs);
+        if (data?.preferences) setPrefs({ ...defaultPrefs, ...data.preferences });
       } catch {
         // Mantener defaults si el dispositivo está offline o aún no está vinculado a la cuenta.
       }

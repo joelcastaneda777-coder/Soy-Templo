@@ -3,6 +3,7 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { notifyPublishedPrayer } from "@/lib/care/notify";
 
 async function requireCareAdmin() {
   const supabase = await createClient();
@@ -29,10 +30,22 @@ export async function moderatePrayer(formData: FormData) {
   const status = z.enum(["approved", "rejected", "answered"]).parse(formData.get("status"));
   const { supabase } = await requireCareAdmin();
 
+  const { data: currentPrayer, error: readError } = await supabase
+    .from("prayer_requests")
+    .select("is_public,status")
+    .eq("id", prayerId)
+    .single();
+  if (readError || !currentPrayer) throw new Error(readError?.message ?? "Petición no encontrada");
+
   const update: { status: string; answered_at?: string | null } = { status };
   update.answered_at = status === "answered" ? new Date().toISOString() : null;
   const { error } = await supabase.from("prayer_requests").update(update).eq("id", prayerId);
   if (error) throw new Error(error.message);
+
+  if (status === "approved" && currentPrayer.is_public && currentPrayer.status !== "approved") {
+    await notifyPublishedPrayer(prayerId);
+  }
+
   refreshCare();
 }
 

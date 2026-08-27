@@ -8,7 +8,7 @@ import { createClient as createServiceClient } from "@supabase/supabase-js";
  * suscripciones, saltándose RLS.
  */
 
-type PushCategory = "devotional" | "verse" | "events" | "sermons" | "campaigns";
+type PushCategory = "devotional" | "verse" | "events" | "sermons" | "campaigns" | "prayer";
 
 const categoryColumn: Record<PushCategory, string> = {
   devotional: "notify_devotional",
@@ -16,6 +16,7 @@ const categoryColumn: Record<PushCategory, string> = {
   events: "notify_events",
   sermons: "notify_sermons",
   campaigns: "notify_campaigns",
+  prayer: "notify_prayer",
 };
 
 function getServiceClient() {
