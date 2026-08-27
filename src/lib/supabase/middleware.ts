@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 type CookieToSet = { name: string; value: string; options?: CookieOptions };
 
-const AUTH_PATHS = ["/auth/login", "/auth/registro"];
+const AUTH_ENTRY_PATHS = ["/auth/login", "/auth/registro"];
 
 /** Refresca la sesión, protege admin y aplica onboarding a la app instalada. */
 export async function updateSession(request: NextRequest) {
@@ -42,12 +42,13 @@ export async function updateSession(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser();
   const path = request.nextUrl.pathname;
-  const isAuthPath = AUTH_PATHS.some((p) => path.startsWith(p));
+  const isAuthFlowPath = path.startsWith("/auth/");
+  const isAuthEntryPath = AUTH_ENTRY_PATHS.some((p) => path.startsWith(p));
   const isOnboarding = path.startsWith("/onboarding");
   const isApi = path.startsWith("/api/");
 
   if (isPwa && !isApi) {
-    if (!user && !isAuthPath) {
+    if (!user && !isAuthFlowPath) {
       const url = request.nextUrl.clone();
       url.pathname = "/auth/login";
       url.search = "";
@@ -57,14 +58,14 @@ export async function updateSession(request: NextRequest) {
       return redirectResponse;
     }
 
-    if (user && !onboardingDone && !isOnboarding && !isAuthPath) {
+    if (user && !onboardingDone && !isOnboarding && !isAuthFlowPath) {
       const url = request.nextUrl.clone();
       url.pathname = "/onboarding";
       url.search = "";
       return NextResponse.redirect(url);
     }
 
-    if (user && onboardingDone && isAuthPath) {
+    if (user && onboardingDone && isAuthEntryPath) {
       const url = request.nextUrl.clone();
       url.pathname = "/";
       url.search = "";

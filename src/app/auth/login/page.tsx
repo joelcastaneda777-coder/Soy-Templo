@@ -6,8 +6,8 @@ export const metadata: Metadata = { title: "Iniciar sesión" };
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string }>;
+  searchParams: Promise<{ next?: string; password?: string }>;
 }) {
-  const { next } = await searchParams;
-  return <LoginForm next={next} />;
+  const { next, password } = await searchParams;
+  return <LoginForm next={next} passwordUpdated={password === "updated"} />;
 }
