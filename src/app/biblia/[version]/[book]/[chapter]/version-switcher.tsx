@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { Select } from "@/components/ui/input";
-import { BIBLE_VERSIONS } from "@/lib/bible/client";
+import { ESBIBLIA_VERSIONS } from "@/lib/bible/esbiblia";
 
 export function VersionSwitcher({
   currentVersion,
@@ -22,7 +22,7 @@ export function VersionSwitcher({
       onChange={(e) => router.push(`/biblia/${e.target.value}/${bookSlug}/${chapter}`)}
       className="w-auto min-h-10 py-1 text-sm"
     >
-      {BIBLE_VERSIONS.map((v) => (
+      {ESBIBLIA_VERSIONS.map((v) => (
         <option key={v.code} value={v.code}>{v.name}</option>
       ))}
     </Select>
