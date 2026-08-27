@@ -21,8 +21,8 @@ export default async function SermonsPage() {
       <PageHero title="Sermones" />
       {sermons?.length ? (
         <ul className="space-y-4">
-          {sermons.map((s) => (
-            <li key={s.id}>
+          {sermons.map((s, i) => (
+            <li key={s.id} className="stagger-item" style={{ animationDelay: `${i * 40}ms` }}>
               <a href={s.video_url} target="_blank" rel="noopener noreferrer">
                 <Card className="transition-colors hover:border-anil-300">
                   <p className="text-xs font-medium text-tinta-suave">{formatDate(s.published_at)}</p>
