@@ -3,6 +3,7 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { sleep } from "@/lib/utils";
 import type { ParsedDevotional } from "@/lib/devotionals/parse-markdown";
 
 const rowSchema = z.object({
@@ -74,5 +75,6 @@ export async function importDevotionals(rows: ParsedDevotional[]): Promise<Impor
   revalidatePath("/devocionales");
   revalidatePath("/");
 
+  await sleep(400);
   return { ok: true, imported: count ?? payload.length };
 }
