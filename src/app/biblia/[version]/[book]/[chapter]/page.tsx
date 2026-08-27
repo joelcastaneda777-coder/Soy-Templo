@@ -2,12 +2,8 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { EmptyState } from "@/components/ui/empty-state";
-import {
-  getBibleBooks,
-  getBibleChapter,
-  slugifyBookName,
-  BIBLE_VERSIONS,
-} from "@/lib/bible/client";
+import { getBibleBooks, slugifyBookName } from "@/lib/bible/client";
+import { ESBIBLIA_VERSIONS, getBibleChapterFromEsBiblia } from "@/lib/bible/esbiblia";
 import { VersionSwitcher } from "./version-switcher";
 
 type Params = { version: string; book: string; chapter: string };
@@ -21,21 +17,18 @@ export default async function BibleChapterPage({ params }: { params: Promise<Par
   const { version, book: bookSlug, chapter: chapterParam } = await params;
   const chapterNum = Number(chapterParam);
 
-  if (!BIBLE_VERSIONS.some((v) => v.code === version) || !Number.isInteger(chapterNum) || chapterNum < 1) {
+  if (!ESBIBLIA_VERSIONS.some((v) => v.code === version) || !Number.isInteger(chapterNum) || chapterNum < 1) {
     notFound();
   }
 
-  const [books, chapterData] = await Promise.all([
-    getBibleBooks(),
-    getBibleChapter(version, bookSlug, chapterNum),
-  ]);
-
+  const books = await getBibleBooks();
   const bookIndex = books.findIndex((b) => slugifyBookName(b.name) === bookSlug);
   const currentBook = books[bookIndex];
 
-  if (!currentBook) notFound();
+  if (!currentBook || chapterNum > currentBook.chapters) notFound();
 
-  // Navegación al capítulo/libro anterior y siguiente
+  const chapterData = await getBibleChapterFromEsBiblia(version, bookSlug, chapterNum);
+
   let prevHref: string | null = null;
   if (chapterNum > 1) {
     prevHref = `/biblia/${version}/${bookSlug}/${chapterNum - 1}`;
@@ -79,7 +72,7 @@ export default async function BibleChapterPage({ params }: { params: Promise<Par
       ) : (
         <EmptyState
           title="No pudimos cargar este capítulo."
-          hint="Puede ser un problema temporal de conexión — intenta de nuevo en un momento."
+          hint="El proveedor bíblico no respondió correctamente. Intenta de nuevo en un momento."
         />
       )}
 
