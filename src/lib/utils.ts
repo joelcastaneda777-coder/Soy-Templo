@@ -31,3 +31,14 @@ export function formatTime(iso: string) {
 export function formatMoney(cents: number, currency = "USD") {
   return new Intl.NumberFormat("es-SV", { style: "currency", currency }).format(cents / 100);
 }
+
+/**
+ * Espera mínima antes de confirmar una acción del servidor.
+ * Una respuesta *instantánea* en un formulario puede sentirse sospechosa
+ * ("¿de verdad se guardó?"); un pequeño respiro (usado junto al estado de
+ * carga que ya existe) da más confianza de que la acción se procesó de
+ * verdad. Se usa dentro de Server Actions, nunca alarga la app en sí.
+ */
+export function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
