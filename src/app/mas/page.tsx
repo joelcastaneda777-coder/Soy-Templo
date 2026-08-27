@@ -11,6 +11,7 @@ export default async function MorePage() {
   const { data: isStaff } = user ? await supabase.rpc("is_staff") : { data: false };
 
   const links = [
+    { href: "/biblia", label: "Biblia" },
     { href: "/donar", label: t.nav.donate },
     { href: "/oracion", label: t.nav.prayer },
     { href: "/radio", label: t.nav.streams },
