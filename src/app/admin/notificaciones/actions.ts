@@ -3,6 +3,7 @@
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { sendPushToCategory } from "@/lib/push/send";
+import { sleep } from "@/lib/utils";
 
 const schema = z.object({
   title: z.string().trim().min(3, "El título es muy corto").max(80),
@@ -42,5 +43,6 @@ export async function sendCampaignPush(
     tag: "campaign",
   });
 
+  await sleep(400);
   return { ok: true, sent };
 }
