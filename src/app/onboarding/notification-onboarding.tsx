@@ -86,6 +86,7 @@ export function NotificationOnboarding() {
             notify_events: true,
             notify_sermons: true,
             notify_campaigns: true,
+            notify_prayer: true,
           },
         }),
       });
@@ -106,7 +107,7 @@ export function NotificationOnboarding() {
         <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-anil-100 text-3xl">🔔</div>
         <h1 className="mt-4 font-display text-3xl font-semibold text-anil-800">Mantente conectado</h1>
         <p className="mt-2 text-sm leading-relaxed text-tinta-suave">
-          Activa las notificaciones para recibir nuevos devocionales, planes, sermones, eventos y avisos importantes de Soy Templo.
+          Activa las notificaciones para recibir devocionales, sermones, eventos, avisos importantes y nuevas oraciones de la comunidad.
         </p>
       </div>
 
@@ -115,6 +116,7 @@ export function NotificationOnboarding() {
           <li>✓ Devocional y verso del día</li>
           <li>✓ Nuevos sermones y estudios</li>
           <li>✓ Eventos y recordatorios</li>
+          <li>✓ Nuevas oraciones de la comunidad</li>
           <li>✓ Anuncios importantes</li>
         </ul>
       </div>
