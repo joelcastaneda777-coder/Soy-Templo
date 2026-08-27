@@ -3,6 +3,7 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { sleep } from "@/lib/utils";
 
 const prayerSchema = z.object({
   body: z.string().trim().min(10, "Cuéntanos un poco más para poder orar contigo.").max(2000),
@@ -47,6 +48,7 @@ export async function submitPrayerRequest(
   });
 
   if (error) return { error: "No pudimos enviar tu petición. Intenta de nuevo." };
+  await sleep(400);
   revalidatePath("/oracion");
   return { ok: true };
 }
