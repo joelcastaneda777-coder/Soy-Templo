@@ -38,10 +38,10 @@ export default async function PrayerPage() {
         <section aria-label="Peticiones públicas" className="space-y-4">
           <h2 className="font-display text-xl font-semibold">Oremos juntos</h2>
           {prayers?.length ? (
-            prayers.map((prayer) => {
+            prayers.map((prayer, i) => {
               const prayingCount = prayer.prayer_interactions?.[0]?.count ?? 0;
               return (
-                <Card key={prayer.id}>
+                <Card key={prayer.id} className="stagger-item" style={{ animationDelay: `${i * 40}ms` }}>
                   <div className="flex flex-wrap items-center gap-2">
                     <Badge tone="anil">{categoryLabels[prayer.category] ?? prayer.category}</Badge>
                     {prayer.status === "answered" ? <Badge tone="balsamo">Respondida 🙌</Badge> : null}
