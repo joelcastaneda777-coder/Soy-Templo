@@ -93,7 +93,7 @@ export async function submitPrayerRequest(
   });
 
   if (error) return { error: "No pudimos enviar tu petición. Intenta de nuevo." };
-  void notifyCareTeam("prayer");
+  await notifyCareTeam("prayer");
   await sleep(300);
   revalidatePath("/oracion");
   revalidatePath("/oracion/mis-solicitudes");
@@ -156,7 +156,7 @@ export async function submitCareRequest(
   });
 
   if (error) return { error: "No pudimos registrar tu solicitud. Intenta de nuevo." };
-  void notifyCareTeam(d.requestType);
+  await notifyCareTeam(d.requestType);
   revalidatePath("/oracion/mis-solicitudes");
   revalidatePath("/admin/cuidado");
   revalidatePath("/cuidado");
