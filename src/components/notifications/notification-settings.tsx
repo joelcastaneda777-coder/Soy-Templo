@@ -65,9 +65,18 @@ export function NotificationSettings() {
 
     navigator.serviceWorker.register("/sw.js").then(async (registration) => {
       const existing = await registration.pushManager.getSubscription();
-      if (existing) {
-        setSubscribed(true);
-        setEndpoint(existing.endpoint);
+      if (!existing) return;
+
+      setSubscribed(true);
+      setEndpoint(existing.endpoint);
+
+      try {
+        const res = await fetch(`/api/push/preferences?endpoint=${encodeURIComponent(existing.endpoint)}`, { cache: "no-store" });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data?.preferences) setPrefs(data.preferences as Prefs);
+      } catch {
+        // Mantener defaults si el dispositivo está offline o aún no está vinculado a la cuenta.
       }
     });
   }, []);
@@ -104,11 +113,7 @@ export function NotificationSettings() {
       const res = await fetch("/api/push/subscribe", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          endpoint: json.endpoint,
-          keys: json.keys,
-          preferences: prefs,
-        }),
+        body: JSON.stringify({ endpoint: json.endpoint, keys: json.keys, preferences: prefs }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => null);
@@ -118,9 +123,7 @@ export function NotificationSettings() {
       setSubscribed(true);
       setEndpoint(subscription.endpoint);
     } catch (err) {
-      setError(err instanceof Error && err.message && !err.message.includes("subscribe-failed")
-        ? err.message
-        : t.notifications.error);
+      setError(err instanceof Error && err.message && !err.message.includes("subscribe-failed") ? err.message : t.notifications.error);
     } finally {
       setPending(false);
     }
@@ -157,13 +160,13 @@ export function NotificationSettings() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ endpoint, ...next }),
+      }).then((res) => {
+        if (!res.ok) setError(t.notifications.error);
       }).catch(() => setError(t.notifications.error));
     }
   }
 
-  if (!supported) {
-    return <p className="text-sm text-tinta-suave">{t.notifications.unsupported}</p>;
-  }
+  if (!supported) return <p className="text-sm text-tinta-suave">{t.notifications.unsupported}</p>;
 
   return (
     <div className="space-y-4 rounded-[var(--radius-card)] border border-manta bg-white p-5 dark:bg-manta">
@@ -172,9 +175,7 @@ export function NotificationSettings() {
         <p className="mt-1 text-sm text-tinta-suave">{t.notifications.intro}</p>
       </div>
 
-      {isIos() && !isStandalonePwa() ? (
-        <p className="rounded-xl bg-cirio-100 p-3 text-sm text-anil-900">{t.notifications.iosHint}</p>
-      ) : null}
+      {isIos() && !isStandalonePwa() ? <p className="rounded-xl bg-cirio-100 p-3 text-sm text-anil-900">{t.notifications.iosHint}</p> : null}
 
       {permission === "denied" ? (
         <p className="text-sm text-error">{t.notifications.blocked}</p>
@@ -191,12 +192,7 @@ export function NotificationSettings() {
           <p className="text-sm font-semibold text-anil-800">{t.notifications.enabled} ✓</p>
           {categoryLabels.map(({ key, label }) => (
             <label key={key} className="flex items-center gap-3 text-sm">
-              <input
-                type="checkbox"
-                checked={prefs[key]}
-                onChange={() => togglePref(key)}
-                className="h-5 w-5 accent-anil-600"
-              />
+              <input type="checkbox" checked={prefs[key]} onChange={() => togglePref(key)} className="h-5 w-5 accent-anil-600" />
               {label}
             </label>
           ))}
