@@ -23,7 +23,7 @@ export function PrayingButton({ prayerId, isLoggedIn }: { prayerId: string; isLo
       disabled={pending || done}
       className="rounded-full bg-anil-50 px-4 py-2 text-sm font-semibold text-anil-800 hover:bg-anil-100 disabled:opacity-70"
     >
-      🙏 {done ? "Orando ✓" : t.prayer.praying}
+      🙏 {done ? <>Orando <span className="animate-check-pop">✓</span></> : t.prayer.praying}
     </button>
   );
 }
