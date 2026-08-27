@@ -28,13 +28,37 @@ function versionToApiCode(version: string): string | null {
   return ESBIBLIA_VERSIONS.find((item) => item.code === version)?.apiCode ?? null;
 }
 
-function normalizeVerse(item: unknown): BibleVerse | null {
+function normalizeVerse(item: unknown, fallbackNumber: number): BibleVerse | null {
   if (!item || typeof item !== "object") return null;
   const row = item as Record<string, unknown>;
-  const number = Number(row.verse ?? row.number ?? row.verse_number);
-  const text = row.text ?? row.verse_text ?? row.content;
+  const number = Number(row.verse ?? row.number ?? row.verse_number ?? fallbackNumber);
+  const text = row.text ?? row.verse_text ?? row.content ?? (typeof row.verse === "string" ? row.verse : null);
   if (!Number.isInteger(number) || typeof text !== "string" || !text.trim()) return null;
   return { number, verse: text.trim() };
+}
+
+function extractVerses(payload: unknown): BibleVerse[] {
+  let rawVerses: unknown[] = [];
+
+  if (Array.isArray(payload)) rawVerses = payload;
+  if (payload && typeof payload === "object") {
+    const obj = payload as Record<string, unknown>;
+    if (Array.isArray(obj.verses)) rawVerses = obj.verses;
+    else if (Array.isArray(obj.results)) rawVerses = obj.results;
+    else if (obj.data && typeof obj.data === "object") {
+      const data = obj.data as Record<string, unknown>;
+      if (Array.isArray(data.verses)) rawVerses = data.verses;
+      else if (Array.isArray(data.results)) rawVerses = data.results;
+    }
+  }
+
+  return rawVerses
+    .map((item, index) => normalizeVerse(item, index + 1))
+    .filter((verse): verse is BibleVerse => verse !== null);
+}
+
+export function isEsBibliaVersion(version: string): boolean {
+  return ESBIBLIA_VERSIONS.some((item) => item.code === version);
 }
 
 export async function getBibleChapterFromEsBiblia(
@@ -46,42 +70,37 @@ export async function getBibleChapterFromEsBiblia(
   const bookId = BOOK_IDS[bookSlug];
   if (!apiVersion || !bookId || !Number.isInteger(chapter) || chapter < 1) return null;
 
-  try {
-    const response = await fetch(
-      `${BASE_URL}/books/${bookId}/${chapter}/?v=${encodeURIComponent(apiVersion)}`,
-      {
-        next: { revalidate: 86400 },
-        headers: { Accept: "application/json" },
-      }
-    );
+  const urls = [
+    `${BASE_URL}/books/${bookId}/${chapter}/?v=${encodeURIComponent(apiVersion)}`,
+    `${BASE_URL}/view/${bookId}/${chapter}/?v=${encodeURIComponent(apiVersion)}`,
+  ];
 
-    if (!response.ok) return null;
-    const payload = await response.json() as unknown;
+  for (const url of urls) {
+    try {
+      const response = await fetch(url, {
+        cache: "no-store",
+        headers: {
+          Accept: "application/json",
+          "User-Agent": "SoyTemplo/1.0",
+        },
+      });
 
-    let rawVerses: unknown[] = [];
-    if (Array.isArray(payload)) rawVerses = payload;
-    if (payload && typeof payload === "object") {
-      const obj = payload as Record<string, unknown>;
-      if (Array.isArray(obj.verses)) rawVerses = obj.verses;
-      else if (Array.isArray(obj.results)) rawVerses = obj.results;
-      else if (obj.data && typeof obj.data === "object") {
-        const data = obj.data as Record<string, unknown>;
-        if (Array.isArray(data.verses)) rawVerses = data.verses;
-        else if (Array.isArray(data.results)) rawVerses = data.results;
-      }
+      if (!response.ok) continue;
+      const payload = await response.json() as unknown;
+      const vers = extractVerses(payload);
+      if (!vers.length) continue;
+
+      return {
+        name: bookSlug,
+        chapter,
+        num_chapters: 0,
+        testament: "",
+        vers,
+      };
+    } catch {
+      // Try the next compatible endpoint.
     }
-
-    const vers = rawVerses.map(normalizeVerse).filter((verse): verse is BibleVerse => verse !== null);
-    if (!vers.length) return null;
-
-    return {
-      name: bookSlug,
-      chapter,
-      num_chapters: 0,
-      testament: "",
-      vers,
-    };
-  } catch {
-    return null;
   }
+
+  return null;
 }
