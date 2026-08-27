@@ -5,7 +5,7 @@ import { t } from "@/lib/i18n/es";
 import { formatDate } from "@/lib/utils";
 import { DevotionalActions } from "./actions-bar";
 
-export const revalidate = 300;
+export const dynamic = "force-dynamic";
 
 async function getDevotional(slug: string) {
   const supabase = await createClient();
@@ -14,6 +14,7 @@ async function getDevotional(slug: string) {
     .select("*, authors(display_name)")
     .eq("slug", slug)
     .eq("status", "published")
+    .lte("publish_at", new Date().toISOString())
     .maybeSingle();
   return data;
 }
@@ -38,6 +39,29 @@ export default async function DevotionalPage({ params }: { params: Promise<{ slu
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
+
+  let initialRead = false;
+  let initialSaved = false;
+
+  if (user) {
+    const [{ data: read }, { data: favorite }] = await Promise.all([
+      supabase
+        .from("devotional_reads")
+        .select("devotional_id")
+        .eq("user_id", user.id)
+        .eq("devotional_id", devotional.id)
+        .maybeSingle(),
+      supabase
+        .from("devotional_favorites")
+        .select("devotional_id")
+        .eq("user_id", user.id)
+        .eq("devotional_id", devotional.id)
+        .maybeSingle(),
+    ]);
+
+    initialRead = !!read;
+    initialSaved = !!favorite;
+  }
 
   return (
     <article className="mx-auto max-w-2xl space-y-6">
@@ -94,7 +118,14 @@ export default async function DevotionalPage({ params }: { params: Promise<{ slu
         </section>
       ) : null}
 
-      <DevotionalActions devotionalId={devotional.id} title={devotional.title} isLoggedIn={!!user} />
+      <DevotionalActions
+        devotionalId={devotional.id}
+        slug={slug}
+        title={devotional.title}
+        isLoggedIn={!!user}
+        initialRead={initialRead}
+        initialSaved={initialSaved}
+      />
     </article>
   );
 }
