@@ -24,8 +24,8 @@ export default async function EventsPage() {
       <PageHero title={t.events.upcoming} />
       {events?.length ? (
         <ul className="space-y-4">
-          {events.map((event) => (
-            <li key={event.id}>
+          {events.map((event, i) => (
+            <li key={event.id} className="stagger-item" style={{ animationDelay: `${i * 40}ms` }}>
               <Card>
                 <div className="flex items-start gap-4">
                   <div className="rounded-2xl bg-anil-600 px-4 py-2 text-center text-white" aria-hidden>
