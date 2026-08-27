@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { sendPushToCategory } from "@/lib/push/send";
+import { sleep } from "@/lib/utils";
 
 const schema = z.object({
   title: z.string().trim().min(3, "El título es muy corto"),
@@ -62,5 +63,6 @@ export async function createSermon(_prev: SermonFormState, formData: FormData): 
 
   revalidatePath("/admin/sermones");
   revalidatePath("/sermones");
+  await sleep(400);
   redirect("/admin/sermones");
 }
