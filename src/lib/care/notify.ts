@@ -1,5 +1,5 @@
 import { createClient as createServiceClient } from "@supabase/supabase-js";
-import { sendPushToUsers } from "@/lib/push/send";
+import { sendPushToCategory, sendPushToUsers } from "@/lib/push/send";
 
 type CareAlertType = "prayer" | "counseling" | "hospital_visit" | "home_visit";
 
@@ -10,14 +10,10 @@ function getServiceClient() {
   return createServiceClient(url, key);
 }
 
-const capabilityColumn: Record<Exclude<CareAlertType, "prayer">, string> = {
-  counseling: "can_counseling",
-  hospital_visit: "can_hospital_visit",
-  home_visit: "can_home_visit",
-};
-
 /**
- * Avisa solo que existe un caso nuevo. Nunca incluye nombre, teléfono,
+ * Avisa que existe una solicitud nueva. Siempre incluye administradores y
+ * superadministradores, además de cualquier miembro activo del equipo de
+ * cuidado marcado para recibir avisos. Nunca incluye nombre, teléfono,
  * diagnóstico, hospital, domicilio ni el texto de la solicitud en el push.
  */
 export async function notifyCareTeam(type: CareAlertType): Promise<void> {
@@ -27,19 +23,11 @@ export async function notifyCareTeam(type: CareAlertType): Promise<void> {
 
     const [{ data: roleRows }, { data: careRows }] = await Promise.all([
       supabase.from("user_roles").select("user_id").in("role", ["admin", "superadmin"]),
-      type === "prayer"
-        ? supabase
-            .from("care_team_members")
-            .select("user_id")
-            .eq("active", true)
-            .eq("notify_new_requests", true)
-            .or("can_triage.eq.true,can_prayer_followup.eq.true")
-        : supabase
-            .from("care_team_members")
-            .select("user_id")
-            .eq("active", true)
-            .eq("notify_new_requests", true)
-            .or(`can_triage.eq.true,${capabilityColumn[type]}.eq.true`),
+      supabase
+        .from("care_team_members")
+        .select("user_id")
+        .eq("active", true)
+        .eq("notify_new_requests", true),
     ]);
 
     const recipients = [
@@ -48,7 +36,7 @@ export async function notifyCareTeam(type: CareAlertType): Promise<void> {
     ];
 
     const labels: Record<CareAlertType, string> = {
-      prayer: "Nueva petición de oración",
+      prayer: "Nueva petición de oración pendiente de revisión",
       counseling: "Nueva solicitud de consejería",
       hospital_visit: "Nueva solicitud de visita hospitalaria",
       home_visit: "Nueva solicitud para Plantadores",
@@ -58,9 +46,26 @@ export async function notifyCareTeam(type: CareAlertType): Promise<void> {
       title: "Soy Templo · Cuidado",
       body: labels[type],
       url: type === "prayer" ? "/admin/cuidado?tab=oracion" : "/admin/cuidado",
-      tag: `care-${type}`,
+      tag: `care-${type}-${Date.now()}`,
     });
   } catch {
     // La solicitud pastoral no debe fallar si push está temporalmente indisponible.
+  }
+}
+
+/**
+ * Avisa a la comunidad únicamente después de que una oración pública haya sido
+ * moderada y aprobada. Respeta la preferencia de notificaciones de cada dispositivo.
+ */
+export async function notifyPublishedPrayer(prayerId: string): Promise<void> {
+  try {
+    await sendPushToCategory("prayer", {
+      title: "Oremos juntos 🙏",
+      body: "Hay una nueva petición pública de oración. Acompañemos a nuestra comunidad.",
+      url: "/oracion",
+      tag: `community-prayer-${prayerId}`,
+    });
+  } catch {
+    // La moderación no debe fallar si push está temporalmente indisponible.
   }
 }
