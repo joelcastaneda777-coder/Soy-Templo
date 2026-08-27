@@ -11,6 +11,12 @@ export const metadata: Metadata = { title: "Devocionales" };
 export const revalidate = 300;
 
 const PAGE_SIZE = 10;
+const elSalvadorDate = new Intl.DateTimeFormat("es-SV", {
+  timeZone: "America/El_Salvador",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
 
 export default async function DevotionalsPage({
   searchParams,
@@ -20,6 +26,7 @@ export default async function DevotionalsPage({
   const { q, p } = await searchParams;
   const page = Math.max(1, Number(p) || 1);
   const supabase = await createClient();
+  const today = elSalvadorDate.format(new Date());
 
   let query = supabase
     .from("devotionals")
@@ -37,6 +44,15 @@ export default async function DevotionalsPage({
     <div className="space-y-5">
       <PageHero title={t.nav.devotionals} />
 
+      <div className="flex justify-end">
+        <Link
+          href="/devocionales/mios"
+          className="rounded-full border border-manta px-4 py-2 text-sm font-semibold text-anil-600 transition-colors hover:border-anil-300"
+        >
+          Mis devocionales
+        </Link>
+      </div>
+
       <form role="search" className="flex gap-2">
         <input
           type="search"
@@ -53,17 +69,26 @@ export default async function DevotionalsPage({
 
       {devotionals?.length ? (
         <ul className="space-y-3">
-          {devotionals.map((d, i) => (
-            <li key={d.slug} className="stagger-item" style={{ animationDelay: `${i * 40}ms` }}>
-              <Link href={`/devocionales/${d.slug}`}>
-                <Card className="transition-colors hover:border-anil-300">
-                  <p className="text-xs font-medium text-tinta-suave">{formatDate(d.publish_at!)}</p>
-                  <h2 className="mt-1 font-display text-xl font-semibold">{d.title}</h2>
-                  <p className="mt-1 text-sm text-balsamo-700">{d.bible_reading}</p>
-                </Card>
-              </Link>
-            </li>
-          ))}
+          {devotionals.map((d, i) => {
+            const isToday = !!d.publish_at && elSalvadorDate.format(new Date(d.publish_at)) === today;
+
+            return (
+              <li key={d.slug} className="stagger-item" style={{ animationDelay: `${i * 40}ms` }}>
+                <Link href={`/devocionales/${d.slug}`}>
+                  <Card className="transition-colors hover:border-anil-300">
+                    <div className="flex items-center gap-2 text-xs font-medium text-tinta-suave">
+                      <span>{formatDate(d.publish_at!)}</span>
+                      {isToday ? (
+                        <span className="rounded-full bg-cirio-100 px-2 py-0.5 font-semibold text-cirio-700">Hoy</span>
+                      ) : null}
+                    </div>
+                    <h2 className="mt-1 font-display text-xl font-semibold">{d.title}</h2>
+                    <p className="mt-1 text-sm text-balsamo-700">{d.bible_reading}</p>
+                  </Card>
+                </Link>
+              </li>
+            );
+          })}
         </ul>
       ) : (
         <EmptyState title={t.devotional.empty} />
