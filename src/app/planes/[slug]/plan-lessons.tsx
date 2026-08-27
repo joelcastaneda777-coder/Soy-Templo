@@ -97,7 +97,10 @@ export function PlanLessons({
               aria-label={t.plans.progress}
               className="mt-1 h-2.5 overflow-hidden rounded-full bg-manta"
             >
-              <div className="h-full rounded-full bg-balsamo-500 transition-all" style={{ width: `${percent}%` }} />
+              <div
+                className="h-full rounded-full bg-balsamo-500"
+                style={{ width: `${percent}%`, transition: "width 500ms cubic-bezier(0.34, 1.2, 0.4, 1)" }}
+              />
             </div>
           </div>
         ) : (
@@ -137,7 +140,7 @@ export function PlanLessons({
                     done ? "bg-balsamo-500 text-white" : "bg-anil-100 text-anil-800"
                   )}
                 >
-                  {done ? "✓" : lesson.position}
+                  {done ? <span className="animate-check-pop">✓</span> : lesson.position}
                 </span>
                 <span>
                   <span className="block font-display font-semibold">{lesson.title}</span>
