@@ -23,8 +23,8 @@ export default async function PlansPage() {
       <PageHero title={t.nav.plans} />
       {plans?.length ? (
         <ul className="grid gap-4 md:grid-cols-2">
-          {plans.map((plan) => (
-            <li key={plan.slug}>
+          {plans.map((plan, i) => (
+            <li key={plan.slug} className="stagger-item" style={{ animationDelay: `${i * 40}ms` }}>
               <Link href={`/planes/${plan.slug}`}>
                 <Card className="h-full transition-colors hover:border-anil-300">
                   <div className="flex flex-wrap gap-2">
