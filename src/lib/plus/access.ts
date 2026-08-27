@@ -28,22 +28,29 @@ export async function getPlusAccess(): Promise<PlusAccess> {
     };
   }
 
-  const [{ data: isSubscriber }, { data: isStaff }, { data: subscriptions }] = await Promise.all([
-    supabase.rpc("has_plus"),
+  const [{ data: isStaff }, { data: subscriptions }] = await Promise.all([
     supabase.rpc("is_staff"),
     supabase
       .from("plus_subscriptions")
       .select("provider,product_id,status,current_period_end,auto_renewing,created_at")
+      .in("status", ["trialing", "active", "grace_period"])
+      .order("current_period_end", { ascending: false, nullsFirst: true })
       .order("created_at", { ascending: false })
       .limit(1),
   ]);
 
-  const subscription = subscriptions?.[0] ?? null;
+  const candidate = subscriptions?.[0] ?? null;
+  const periodIsCurrent = candidate
+    ? !candidate.current_period_end || new Date(candidate.current_period_end).getTime() > Date.now()
+    : false;
+  const isSubscriber = !!candidate && periodIsCurrent;
+  const subscription = isSubscriber ? candidate : null;
+
   return {
     isLoggedIn: true,
-    isSubscriber: !!isSubscriber,
+    isSubscriber,
     isStaff: !!isStaff,
-    hasAccess: !!isSubscriber || !!isStaff,
+    hasAccess: isSubscriber || !!isStaff,
     subscription: subscription
       ? {
           provider: subscription.provider,
