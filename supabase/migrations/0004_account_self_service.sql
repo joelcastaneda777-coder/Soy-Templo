@@ -27,5 +27,6 @@ begin
 end;
 $$;
 
-revoke all on function public.delete_own_account() from public;
+revoke execute on function public.delete_own_account() from anon;
+revoke execute on function public.delete_own_account() from public;
 grant execute on function public.delete_own_account() to authenticated;
