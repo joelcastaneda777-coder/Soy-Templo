@@ -77,8 +77,8 @@ function getCardStyle(position: CardPosition): CSSProperties {
  * La tarjeta activa queda anclada al centro y las tarjetas vecinas se
  * distribuyen a ambos lados con profundidad. El carrusel es circular para
  * mantener la composición balanceada incluso en el primer y último plan.
- * También admite swipe/drag horizontal, teclado y selección directa de una
- * tarjeta vecina.
+ * La navegación visual se hace directamente con swipe/drag horizontal,
+ * teclado o tocando una tarjeta vecina.
  */
 export function PlanGallery({ plans }: { plans: Plan[] }) {
   const [activeIndex, setActiveIndex] = useState(0);
@@ -86,8 +86,6 @@ export function PlanGallery({ plans }: { plans: Plan[] }) {
   const suppressNextClick = useRef(false);
 
   if (!plans.length) return null;
-
-  const active = plans[activeIndex];
 
   function goTo(index: number) {
     setActiveIndex(wrapIndex(index, plans.length));
@@ -131,7 +129,7 @@ export function PlanGallery({ plans }: { plans: Plan[] }) {
   return (
     <section className="relative -mx-4 overflow-hidden px-4 pb-2 sm:-mx-6 sm:px-6" aria-label="Galería de planes bíblicos">
       <div
-        className="relative mx-auto h-[398px] w-full max-w-4xl select-none sm:h-[438px]"
+        className="relative mx-auto h-[444px] w-full max-w-4xl select-none sm:h-[468px]"
         style={{ perspective: "1200px", touchAction: "pan-y" }}
         tabIndex={0}
         onKeyDown={(event) => {
@@ -158,7 +156,7 @@ export function PlanGallery({ plans }: { plans: Plan[] }) {
 
           const content = (
             <>
-              <div className="relative h-[43%] w-full overflow-hidden bg-anil-900">
+              <div className="relative h-[40%] w-full overflow-hidden bg-anil-900">
                 <Image
                   src="/plans/lesson-cover-example.jpg"
                   alt=""
@@ -190,7 +188,7 @@ export function PlanGallery({ plans }: { plans: Plan[] }) {
                 </div>
               </div>
 
-              <div className="flex h-[57%] flex-col bg-[linear-gradient(155deg,rgba(35,83,71,0.94),rgba(5,31,32,0.97))] p-5 text-anil-50 backdrop-blur-xl sm:p-6">
+              <div className="flex h-[60%] flex-col bg-[linear-gradient(155deg,rgba(35,83,71,0.94),rgba(5,31,32,0.97))] p-5 text-anil-50 backdrop-blur-xl sm:p-6">
                 <div className="flex flex-wrap gap-2">
                   <Badge tone="anil">{plan.duration_days} {t.plans.days}</Badge>
                   <Badge tone="balsamo">{t.plans.level[plan.level] ?? plan.level}</Badge>
@@ -217,9 +215,9 @@ export function PlanGallery({ plans }: { plans: Plan[] }) {
           );
 
           const sharedClasses = cn(
-            "group absolute left-1/2 top-3 h-[354px] w-[78vw] max-w-[350px] origin-center overflow-hidden rounded-[2rem] border border-anil-50/15 text-left shadow-[0_22px_55px_rgba(5,31,32,0.32)] transition-[transform,opacity,filter,box-shadow] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] sm:top-4 sm:h-[390px] sm:w-[360px] sm:max-w-[360px]",
+            "group absolute left-1/2 top-3 h-[400px] w-[78vw] max-w-[350px] origin-center overflow-hidden rounded-[2rem] border border-anil-50/15 text-left shadow-[0_22px_55px_rgba(5,31,32,0.32)] transition-[transform,opacity,filter,box-shadow] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] sm:top-4 sm:h-[420px] sm:w-[360px] sm:max-w-[360px]",
             isActive
-              ? "pointer-events-auto shadow-[0_28px_70px_rgba(5,31,32,0.42)]"
+              ? "plan-card-hop pointer-events-auto shadow-[0_28px_70px_rgba(5,31,32,0.42)]"
               : "cursor-pointer hover:opacity-70"
           );
 
@@ -253,43 +251,21 @@ export function PlanGallery({ plans }: { plans: Plan[] }) {
         })}
       </div>
 
-      <div className="glass-dark relative z-50 mx-auto -mt-1 flex w-[min(90vw,390px)] items-center justify-between rounded-full px-2 py-2 shadow-[0_16px_36px_rgba(5,31,32,0.24)]">
-        <button
-          type="button"
-          onClick={() => goBy(-1)}
-          disabled={plans.length <= 1}
-          aria-label="Plan anterior"
-          className="flex h-11 w-11 items-center justify-center rounded-full text-lg text-anil-50 transition-colors hover:bg-anil-50/10 disabled:opacity-30"
-        >
-          ←
-        </button>
+      <style jsx global>{`
+        @keyframes plan-card-hop {
+          0%, 100% { translate: 0 0; }
+          46% { translate: 0 -9px; }
+          72% { translate: 0 2px; }
+        }
 
-        <div className="min-w-28 text-center" aria-live="polite">
-          <span className="block text-sm font-semibold text-anil-50">
-            {activeIndex + 1} de {plans.length}
-          </span>
-          <span className="mt-1.5 block h-1 overflow-hidden rounded-full bg-anil-50/12" aria-hidden="true">
-            <span
-              className="block h-full rounded-full bg-cirio-500 transition-[width] duration-500"
-              style={{ width: `${((activeIndex + 1) / plans.length) * 100}%` }}
-            />
-          </span>
-        </div>
+        .plan-card-hop {
+          animation: plan-card-hop 380ms cubic-bezier(0.22, 1, 0.36, 1);
+        }
 
-        <button
-          type="button"
-          onClick={() => goBy(1)}
-          disabled={plans.length <= 1}
-          aria-label="Plan siguiente"
-          className="flex h-11 w-11 items-center justify-center rounded-full text-lg text-anil-50 transition-colors hover:bg-anil-50/10 disabled:opacity-30"
-        >
-          →
-        </button>
-      </div>
-
-      <p className="mt-3 text-center text-xs text-tinta-suave sm:hidden">
-        Desliza para explorar · {active?.name}
-      </p>
+        @media (prefers-reduced-motion: reduce) {
+          .plan-card-hop { animation: none; }
+        }
+      `}</style>
     </section>
   );
 }
