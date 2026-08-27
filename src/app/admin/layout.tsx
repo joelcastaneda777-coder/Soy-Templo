@@ -23,6 +23,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     { href: "/admin/sermones", label: "Sermones" },
     { href: "/admin/notificaciones", label: "Notificaciones" },
     { href: "/admin/donaciones", label: "Donaciones" },
+    { href: "/admin/plus", label: "Soy Templo+" },
     { href: "/admin/oracion", label: "Peticiones" },
     { href: "/admin/usuarios", label: "Usuarios" },
     { href: "/admin/configuracion", label: "Configuración" },
