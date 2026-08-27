@@ -15,6 +15,7 @@ export type ParsedPlan = {
   durationDays: number;
   level: "beginner" | "intermediate" | "advanced";
   topic: string;
+  accessTier: "free" | "plus";
   lessons: ParsedPlanLesson[];
 };
 
@@ -77,6 +78,8 @@ export function parsePlansMarkdown(markdown: string): ParsePlansResult {
     const durationRaw = body.match(/^\*\*Duración:\*\*\s*(\d+)/mi)?.[1];
     const levelRaw = body.match(/^\*\*Nivel:\*\*\s*(.+)$/mi)?.[1]?.trim().toLowerCase() ?? "principiante";
     const topic = body.match(/^\*\*Tema:\*\*\s*(.+)$/mi)?.[1]?.trim() ?? "Estudio bíblico";
+    const accessRaw = body.match(/^\*\*Acceso:\*\*\s*(.+)$/mi)?.[1]?.trim().toLowerCase() ?? "gratis";
+    const accessTier = /plus|premium|soy\s*templo\+/.test(accessRaw) ? "plus" : "free";
     const level = levelRaw.startsWith("av") ? "advanced" : levelRaw.startsWith("inter") ? "intermediate" : "beginner";
     const lessonChunks = body.split(/^## LECCIÓN\s+(\d+):\s*/mi).slice(1);
     const lessons: ParsedPlanLesson[] = [];
@@ -105,7 +108,7 @@ export function parsePlansMarkdown(markdown: string): ParsePlansResult {
       continue;
     }
 
-    plans.push({ name, slug: slugify(name), description, durationDays, level, topic, lessons });
+    plans.push({ name, slug: slugify(name), description, durationDays, level, topic, accessTier, lessons });
   }
 
   if (planChunks.length === 0 && markdown.trim()) issues.push('No se encontró ningún encabezado con el formato "# PLAN: Nombre".');
