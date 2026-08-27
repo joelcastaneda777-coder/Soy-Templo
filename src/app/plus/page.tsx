@@ -69,7 +69,7 @@ export default async function PlusPage() {
 
         <div className="grid gap-4 sm:grid-cols-2">
           {[plusProducts.monthly, plusProducts.annual].map((product) => (
-            <Card key={product.productId} className="text-center">
+            <Card key={product.basePlanId} className="text-center">
               <p className="text-sm font-semibold text-tinta-suave">{product.label}</p>
               <p className="mt-2 font-display text-3xl font-semibold text-anil-900">{product.displayPrice}</p>
               <p className="mt-2 text-xs leading-relaxed text-tinta-suave">
