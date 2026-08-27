@@ -3,13 +3,13 @@ import type { BibleChapter, BibleVerse } from "@/lib/bible/client";
 const BASE_URL = "https://esbiblia.net/api";
 
 /**
- * Códigos públicos de Soy Templo -> códigos reales reportados por esBiblia.
- * No presentamos RVR1960 porque el endpoint vivo /versions/ ya no la ofrece.
+ * Versiones verificadas extremo a extremo contra el endpoint vivo de esBiblia.
+ * RVR1960 fue retirada del servicio. JER sigue apareciendo en /versions/,
+ * pero actualmente no entrega capítulos, por lo que no se ofrece en la UI.
  */
 export const ESBIBLIA_VERSIONS = [
   { code: "rvr1909", apiCode: "rvr", name: "Reina Valera 1909" },
   { code: "rva", apiCode: "rva", name: "Reina Valera Actualizada" },
-  { code: "jer", apiCode: "JER", name: "Biblia de Jerusalén" },
 ] as const;
 
 export const DEFAULT_ESBIBLIA_VERSION = "rvr1909";
