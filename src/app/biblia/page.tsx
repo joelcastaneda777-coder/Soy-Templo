@@ -2,7 +2,8 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { PageHero } from "@/components/layout/page-hero";
 import { Card } from "@/components/ui/card";
-import { getBibleBooks, slugifyBookName, DEFAULT_BIBLE_VERSION } from "@/lib/bible/client";
+import { getBibleBooks, slugifyBookName } from "@/lib/bible/client";
+import { DEFAULT_ESBIBLIA_VERSION } from "@/lib/bible/esbiblia";
 
 export const metadata: Metadata = { title: "Biblia" };
 export const revalidate = 86400;
@@ -36,7 +37,7 @@ function BookGroup({ title, books }: { title: string; books: { name: string }[] 
               className={i % 2 === 0 ? "border-r border-manta sm:border-r-0" : ""}
             >
               <Link
-                href={`/biblia/${DEFAULT_BIBLE_VERSION}/${slugifyBookName(book.name)}/1`}
+                href={`/biblia/${DEFAULT_ESBIBLIA_VERSION}/${slugifyBookName(book.name)}/1`}
                 className="flex min-h-12 items-center px-4 py-2 text-sm font-medium hover:bg-anil-50"
               >
                 {book.name}

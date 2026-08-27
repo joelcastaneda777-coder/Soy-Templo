@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { EmptyState } from "@/components/ui/empty-state";
 import { getBibleBooks, slugifyBookName } from "@/lib/bible/client";
 import { ESBIBLIA_VERSIONS, getBibleChapterFromEsBiblia } from "@/lib/bible/esbiblia";
@@ -16,6 +16,13 @@ export async function generateMetadata({ params }: { params: Promise<Params> }):
 export default async function BibleChapterPage({ params }: { params: Promise<Params> }) {
   const { version, book: bookSlug, chapter: chapterParam } = await params;
   const chapterNum = Number(chapterParam);
+
+  // Compatibilidad con enlaces creados cuando la UI anunciaba RVR1960.
+  // El proveedor vivo retiró esa versión; redirigimos al texto RVR1909 real
+  // en vez de etiquetar incorrectamente una traducción como RVR1960.
+  if (version === "rv1960") {
+    redirect(`/biblia/rvr1909/${bookSlug}/${chapterParam}`);
+  }
 
   if (!ESBIBLIA_VERSIONS.some((v) => v.code === version) || !Number.isInteger(chapterNum) || chapterNum < 1) {
     notFound();
