@@ -15,6 +15,7 @@ const bodySchema = z.object({
       notify_events: z.boolean().optional(),
       notify_sermons: z.boolean().optional(),
       notify_campaigns: z.boolean().optional(),
+      notify_prayer: z.boolean().optional(),
     })
     .optional(),
 });
