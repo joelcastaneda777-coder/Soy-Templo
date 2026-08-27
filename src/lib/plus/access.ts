@@ -33,18 +33,23 @@ export async function getPlusAccess(): Promise<PlusAccess> {
     supabase
       .from("plus_subscriptions")
       .select("provider,product_id,status,current_period_end,auto_renewing,created_at")
-      .in("status", ["trialing", "active", "grace_period"])
+      .in("status", ["trialing", "active", "grace_period", "canceled"])
       .order("current_period_end", { ascending: false, nullsFirst: true })
       .order("created_at", { ascending: false })
-      .limit(1),
+      .limit(10),
   ]);
 
-  const candidate = subscriptions?.[0] ?? null;
-  const periodIsCurrent = candidate
-    ? !candidate.current_period_end || new Date(candidate.current_period_end).getTime() > Date.now()
-    : false;
-  const isSubscriber = !!candidate && periodIsCurrent;
-  const subscription = isSubscriber ? candidate : null;
+  const subscription = (subscriptions ?? []).find((candidate) => {
+    if (["trialing", "active", "grace_period"].includes(candidate.status)) {
+      return !candidate.current_period_end || new Date(candidate.current_period_end).getTime() > Date.now();
+    }
+    if (candidate.status === "canceled") {
+      return !!candidate.current_period_end && new Date(candidate.current_period_end).getTime() > Date.now();
+    }
+    return false;
+  }) ?? null;
+
+  const isSubscriber = !!subscription;
 
   return {
     isLoggedIn: true,
