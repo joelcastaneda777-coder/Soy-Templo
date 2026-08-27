@@ -1,10 +1,9 @@
 import { NextResponse } from "next/server";
 
 const URLS = [
-  "https://esbiblia.net/api/books/NUM/1/?v=RVR1960",
-  "https://esbiblia.net/api/view/NUM/1/?v=RVR1960",
-  "http://esbiblia.net/api/books/NUM/1/?v=RVR1960",
-  "http://esbiblia.net/api/view/NUM/1/?v=RVR1960",
+  "https://esbiblia.net/api/versions/",
+  "https://esbiblia.net/api/books/",
+  "https://esbiblia.net/api/view/NUM/1/",
 ];
 
 export async function GET() {
@@ -42,7 +41,7 @@ export async function GET() {
             : [],
         sample:
           parsed && typeof parsed === "object"
-            ? JSON.stringify(parsed).slice(0, 1200)
+            ? JSON.stringify(parsed).slice(0, 3000)
             : text.slice(0, 1200),
       });
     } catch (error) {
