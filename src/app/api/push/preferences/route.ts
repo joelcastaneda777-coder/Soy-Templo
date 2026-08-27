@@ -9,6 +9,7 @@ const bodySchema = z.object({
   notify_events: z.boolean(),
   notify_sermons: z.boolean(),
   notify_campaigns: z.boolean(),
+  notify_prayer: z.boolean(),
 });
 
 export async function GET(request: Request) {
@@ -22,7 +23,7 @@ export async function GET(request: Request) {
 
   const { data, error } = await supabase
     .from("push_subscriptions")
-    .select("notify_devotional, notify_verse, notify_events, notify_sermons, notify_campaigns")
+    .select("notify_devotional, notify_verse, notify_events, notify_sermons, notify_campaigns, notify_prayer")
     .eq("endpoint", endpoint)
     .eq("user_id", user.id)
     .maybeSingle();
