@@ -63,10 +63,10 @@ export function DevotionalActions({
         {isLoggedIn ? (
           <>
             <Button variant="secondary" onClick={save} disabled={pending || isSaved}>
-              {isSaved ? "Guardado ✓" : t.devotional.save}
+              {isSaved ? <>Guardado <span className="animate-check-pop">✓</span></> : t.devotional.save}
             </Button>
             <Button onClick={markRead} disabled={pending || isRead}>
-              {isRead ? `${t.devotional.read} ✓` : t.devotional.markRead}
+              {isRead ? <>{t.devotional.read} <span className="animate-check-pop">✓</span></> : t.devotional.markRead}
             </Button>
           </>
         ) : (
