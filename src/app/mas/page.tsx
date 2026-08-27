@@ -8,7 +8,12 @@ import { NotificationSettings } from "@/components/notifications/notification-se
 export default async function MorePage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  const { data: isStaff } = user ? await supabase.rpc("is_staff") : { data: false };
+  const [{ data: isStaff }, { data: careMembership }] = user
+    ? await Promise.all([
+        supabase.rpc("is_staff"),
+        supabase.from("care_team_members").select("active").eq("user_id", user.id).maybeSingle(),
+      ])
+    : [{ data: false }, { data: null }];
 
   const links = [
     { href: "/biblia", label: "Biblia" },
@@ -37,6 +42,13 @@ export default async function MorePage() {
               <li>
                 <Link href="/admin" className="flex min-h-14 items-center px-5 font-semibold text-anil-600">
                   {t.nav.admin} →
+                </Link>
+              </li>
+            ) : null}
+            {careMembership?.active ? (
+              <li>
+                <Link href="/cuidado" className="flex min-h-14 items-center px-5 font-semibold text-balsamo-700">
+                  Equipo de cuidado →
                 </Link>
               </li>
             ) : null}
