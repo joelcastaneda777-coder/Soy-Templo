@@ -53,8 +53,8 @@ export default async function DevotionalsPage({
 
       {devotionals?.length ? (
         <ul className="space-y-3">
-          {devotionals.map((d) => (
-            <li key={d.slug}>
+          {devotionals.map((d, i) => (
+            <li key={d.slug} className="stagger-item" style={{ animationDelay: `${i * 40}ms` }}>
               <Link href={`/devocionales/${d.slug}`}>
                 <Card className="transition-colors hover:border-anil-300">
                   <p className="text-xs font-medium text-tinta-suave">{formatDate(d.publish_at!)}</p>
