@@ -1,13 +1,13 @@
 "use client";
 
 import { useRef } from "react";
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { t } from "@/lib/i18n/es";
 import { GlassSurface } from "@/components/liquid-glass/GlassSurface";
 import { GlassGroup } from "@/components/liquid-glass/GlassGroup";
 import { GlassPill } from "@/components/liquid-glass/GlassPill";
+import { TransitionLink } from "@/components/layout/transition-link";
 
 const items = [
   { href: "/", key: "home", label: t.nav.home, icon: HomeIcon },
@@ -39,7 +39,7 @@ export function BottomNav() {
               const active = key === activeItem.key;
               return (
                 <li key={href} className="relative z-10 flex-1">
-                  <Link
+                  <TransitionLink
                     href={href}
                     data-nav-key={key}
                     aria-current={active ? "page" : undefined}
@@ -50,7 +50,7 @@ export function BottomNav() {
                   >
                     <Icon className="h-5 w-5" filled={active} />
                     {label}
-                  </Link>
+                  </TransitionLink>
                 </li>
               );
             })}
