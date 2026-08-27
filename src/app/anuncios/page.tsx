@@ -33,8 +33,8 @@ export default async function AnnouncementsPage() {
       <PageHero title={t.nav.announcements} />
       {announcements?.length ? (
         <ul className="space-y-4">
-          {announcements.map((a) => (
-            <li key={a.id}>
+          {announcements.map((a, i) => (
+            <li key={a.id} className="stagger-item" style={{ animationDelay: `${i * 40}ms` }}>
               <Card>
                 <Badge tone="anil">{categoryLabels[a.category] ?? a.category}</Badge>
                 <h2 className="mt-2 font-display text-xl font-semibold">{a.title}</h2>
