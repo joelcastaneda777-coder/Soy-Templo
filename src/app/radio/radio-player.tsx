@@ -1,6 +1,7 @@
 "use client";
 
-import { useRef, useState } from "react";
+import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { t } from "@/lib/i18n/es";
@@ -11,12 +12,49 @@ type Status = "idle" | "loading" | "playing" | "error";
 export function RadioPlayer({
   streamUrl,
   stationName,
+  hasBackgroundAccess,
 }: {
   streamUrl: string | null;
   stationName: string;
+  hasBackgroundAccess: boolean;
 }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [status, setStatus] = useState<Status>("idle");
+  const [backgroundLocked, setBackgroundLocked] = useState(false);
+
+  useEffect(() => {
+    const onVisibilityChange = () => {
+      const audio = audioRef.current;
+      if (!document.hidden || hasBackgroundAccess || !audio || audio.paused) return;
+      audio.pause();
+      setStatus("idle");
+      setBackgroundLocked(true);
+    };
+
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", onVisibilityChange);
+  }, [hasBackgroundAccess]);
+
+  useEffect(() => {
+    if (!("mediaSession" in navigator)) return;
+    if (!hasBackgroundAccess) {
+      navigator.mediaSession.metadata = null;
+      return;
+    }
+
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: stationName,
+      artist: "Soy Templo",
+      album: "Radio en vivo",
+    });
+    navigator.mediaSession.setActionHandler("play", () => audioRef.current?.play());
+    navigator.mediaSession.setActionHandler("pause", () => audioRef.current?.pause());
+
+    return () => {
+      navigator.mediaSession.setActionHandler("play", null);
+      navigator.mediaSession.setActionHandler("pause", null);
+    };
+  }, [hasBackgroundAccess, stationName]);
 
   if (!streamUrl) {
     return <EmptyState title={t.radio.unavailable} />;
@@ -26,6 +64,7 @@ export function RadioPlayer({
     const audio = audioRef.current;
     if (!audio) return;
 
+    setBackgroundLocked(false);
     if (status === "playing") {
       audio.pause();
       setStatus("idle");
@@ -33,8 +72,6 @@ export function RadioPlayer({
     }
 
     setStatus("loading");
-    // El elemento <audio> no trae `src` en el HTML: se asigna aquí para no
-    // abrir la conexión de streaming hasta que la persona decide escuchar.
     if (!audio.src) audio.src = streamUrl!;
     audio.play().catch(() => setStatus("error"));
   }
@@ -55,8 +92,16 @@ export function RadioPlayer({
         preload="none"
         onPlaying={() => setStatus("playing")}
         onWaiting={() => setStatus("loading")}
+        onPause={() => setStatus("idle")}
         onError={() => setStatus("error")}
       />
+
+      <span className={cn(
+        "inline-flex rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wide",
+        hasBackgroundAccess ? "bg-anil-600 text-white" : "bg-manta text-tinta-suave"
+      )}>
+        {hasBackgroundAccess ? "Soy Templo+ · segundo plano" : "Radio gratuita · app abierta"}
+      </span>
 
       {status === "playing" ? (
         <span className="inline-flex items-center gap-2 rounded-full bg-error/10 px-4 py-1.5 text-sm font-semibold text-error">
@@ -88,8 +133,19 @@ export function RadioPlayer({
       <p className="min-h-5 text-sm text-tinta-suave">
         {status === "loading" ? t.radio.loading : null}
         {status === "error" ? <span className="text-error">{t.radio.error}</span> : null}
-        {status === "idle" ? t.radio.play : null}
+        {status === "idle" && !backgroundLocked ? t.radio.play : null}
       </p>
+
+      {backgroundLocked ? (
+        <div className="max-w-sm rounded-2xl bg-anil-50 p-4 text-sm leading-relaxed text-anil-900">
+          La radio se pausó porque la escucha con pantalla bloqueada o usando otras apps es parte de Soy Templo+.
+          <div><Link href="/plus" className="mt-2 inline-block font-semibold text-anil-600">Conocer Soy Templo+ →</Link></div>
+        </div>
+      ) : !hasBackgroundAccess ? (
+        <p className="max-w-sm text-xs leading-relaxed text-tinta-suave">
+          Con Soy Templo+ la transmisión puede seguir mientras cambias de aplicación o bloqueas la pantalla.
+        </p>
+      ) : null}
 
       <button onClick={share} className="text-sm font-semibold text-anil-600">
         {t.radio.share}
