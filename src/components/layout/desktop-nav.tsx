@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { t } from "@/lib/i18n/es";
 import { createClient } from "@/lib/supabase/server";
+import { TransitionLink } from "@/components/layout/transition-link";
 
 /** Navegación superior para escritorio (server component: conoce la sesión). */
 export async function DesktopNav() {
@@ -42,19 +43,19 @@ export async function DesktopNav() {
         </Link>
         <nav aria-label="Navegación principal" className="flex items-center gap-6">
           {links.map((l) => (
-            <Link key={l.href} href={l.href} className="text-sm font-medium text-tinta-suave hover:text-anil-600">
+            <TransitionLink key={l.href} href={l.href} className="text-sm font-medium text-tinta-suave hover:text-anil-600">
               {l.label}
-            </Link>
+            </TransitionLink>
           ))}
-          <Link
+          <TransitionLink
             href="/donar"
             className="rounded-full bg-cirio-500 px-5 py-2 text-sm font-semibold text-anil-900 hover:brightness-95"
           >
             {t.nav.donate}
-          </Link>
-          <Link href={user ? "/mas" : "/auth/login"} className="text-sm font-medium text-anil-600">
+          </TransitionLink>
+          <TransitionLink href={user ? "/mas" : "/auth/login"} className="text-sm font-medium text-anil-600">
             {user ? t.nav.profile : t.auth.login}
-          </Link>
+          </TransitionLink>
         </nav>
       </div>
     </header>
