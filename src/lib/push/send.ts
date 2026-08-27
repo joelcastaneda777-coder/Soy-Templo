@@ -41,22 +41,19 @@ export type PushPayload = {
   tag?: string;
 };
 
-/** Envía un push a todas las suscripciones activas de una categoría. */
-export async function sendPushToCategory(
-  category: PushCategory,
+type PushSubscriptionRow = {
+  id: string;
+  endpoint: string;
+  p256dh: string;
+  auth_key: string;
+};
+
+async function deliver(
+  subscriptions: PushSubscriptionRow[],
   payload: PushPayload
 ): Promise<{ sent: number; failed: number }> {
   configureWebPush();
   const supabase = getServiceClient();
-  const column = categoryColumn[category];
-
-  const { data: subscriptions, error } = await supabase
-    .from("push_subscriptions")
-    .select("id, endpoint, p256dh, auth_key")
-    .eq(column, true);
-
-  if (error || !subscriptions) return { sent: 0, failed: 0 };
-
   let sent = 0;
   let failed = 0;
   const expiredIds: string[] = [];
@@ -74,7 +71,6 @@ export async function sendPushToCategory(
         sent++;
       } catch (err: unknown) {
         failed++;
-        // 404/410 = la suscripción ya no existe (el usuario la revocó o desinstaló la app)
         const statusCode = (err as { statusCode?: number })?.statusCode;
         if (statusCode === 404 || statusCode === 410) expiredIds.push(sub.id);
       }
@@ -86,4 +82,43 @@ export async function sendPushToCategory(
   }
 
   return { sent, failed };
+}
+
+/** Envía un push a todas las suscripciones activas de una categoría. */
+export async function sendPushToCategory(
+  category: PushCategory,
+  payload: PushPayload
+): Promise<{ sent: number; failed: number }> {
+  const supabase = getServiceClient();
+  const column = categoryColumn[category];
+
+  const { data: subscriptions, error } = await supabase
+    .from("push_subscriptions")
+    .select("id, endpoint, p256dh, auth_key")
+    .eq(column, true);
+
+  if (error || !subscriptions?.length) return { sent: 0, failed: 0 };
+  return deliver(subscriptions as PushSubscriptionRow[], payload);
+}
+
+/**
+ * Push operativo dirigido a usuarios concretos (por ejemplo, equipo de cuidado).
+ * No incluye datos pastorales sensibles en el payload; el contenido se consulta
+ * después de autenticarse dentro de la app.
+ */
+export async function sendPushToUsers(
+  userIds: string[],
+  payload: PushPayload
+): Promise<{ sent: number; failed: number }> {
+  const uniqueUserIds = [...new Set(userIds.filter(Boolean))];
+  if (!uniqueUserIds.length) return { sent: 0, failed: 0 };
+
+  const supabase = getServiceClient();
+  const { data: subscriptions, error } = await supabase
+    .from("push_subscriptions")
+    .select("id, endpoint, p256dh, auth_key")
+    .in("user_id", uniqueUserIds);
+
+  if (error || !subscriptions?.length) return { sent: 0, failed: 0 };
+  return deliver(subscriptions as PushSubscriptionRow[], payload);
 }

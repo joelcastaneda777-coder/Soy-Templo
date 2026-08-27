@@ -30,10 +30,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     { href: "/admin/eventos", label: "Eventos" },
     { href: "/admin/sermones", label: "Sermones" },
     { href: "/admin/notificaciones", label: "Notificaciones" },
-    { href: "/admin/oracion", label: "Peticiones" },
   ];
 
   const adminSections = [
+    { href: "/admin/cuidado", label: "Cuidado pastoral" },
     { href: "/admin/donaciones", label: "Donaciones" },
     { href: "/admin/plus", label: "Soy Templo+" },
     { href: "/admin/usuarios", label: "Usuarios" },
