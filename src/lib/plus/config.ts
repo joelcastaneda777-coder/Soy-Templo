@@ -1,11 +1,15 @@
+export const PLUS_PRODUCT_ID = "soy_templo_plus";
+
 export const plusProducts = {
   monthly: {
-    productId: "soy_templo_plus_monthly",
+    productId: PLUS_PRODUCT_ID,
+    basePlanId: "monthly",
     label: "Mensual",
     displayPrice: "$2.99 / mes",
   },
   annual: {
-    productId: "soy_templo_plus_annual",
+    productId: PLUS_PRODUCT_ID,
+    basePlanId: "annual",
     label: "Anual",
     displayPrice: "$29.99 / año",
   },
