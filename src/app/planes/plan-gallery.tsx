@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
+import type { CSSProperties, MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
@@ -17,124 +18,278 @@ type Plan = {
   access_tier: string | null;
 };
 
+type CardPosition = -2 | -1 | 0 | 1 | 2;
+
+function wrapIndex(index: number, total: number) {
+  return ((index % total) + total) % total;
+}
+
+function getRelativePosition(index: number, activeIndex: number, total: number) {
+  let distance = index - activeIndex;
+  const half = total / 2;
+
+  if (distance > half) distance -= total;
+  if (distance < -half) distance += total;
+
+  return distance;
+}
+
+function getCardStyle(position: CardPosition): CSSProperties {
+  const styles: Record<CardPosition, CSSProperties> = {
+    0: {
+      transform: "translate3d(-50%, 0, 0) scale(1) rotateY(0deg)",
+      opacity: 1,
+      zIndex: 40,
+      filter: "brightness(1) saturate(1)",
+    },
+    [-1]: {
+      transform: "translate3d(calc(-50% - min(43vw, 245px)), 22px, -75px) scale(0.88) rotateY(7deg)",
+      opacity: 0.52,
+      zIndex: 30,
+      filter: "brightness(0.72) saturate(0.8)",
+    },
+    1: {
+      transform: "translate3d(calc(-50% + min(43vw, 245px)), 22px, -75px) scale(0.88) rotateY(-7deg)",
+      opacity: 0.52,
+      zIndex: 30,
+      filter: "brightness(0.72) saturate(0.8)",
+    },
+    [-2]: {
+      transform: "translate3d(calc(-50% - min(67vw, 375px)), 42px, -150px) scale(0.76) rotateY(10deg)",
+      opacity: 0.2,
+      zIndex: 20,
+      filter: "brightness(0.58) saturate(0.68)",
+    },
+    2: {
+      transform: "translate3d(calc(-50% + min(67vw, 375px)), 42px, -150px) scale(0.76) rotateY(-10deg)",
+      opacity: 0.2,
+      zIndex: 20,
+      filter: "brightness(0.58) saturate(0.68)",
+    },
+  };
+
+  return styles[position];
+}
+
 /**
- * Galería de planes: una tarjeta al frente, con las vecinas asomando a
- * los lados — para explorar varios planes antes de elegir uno, como en
- * una galería de museo. Al tocar la tarjeta activa, entra al plan; al
- * tocar una vecina, solo la trae al frente.
+ * Galería coverflow de planes.
  *
- * Todo el contenido vive en el flujo normal de la página (nada con
- * `position: fixed` aquí) para no interferir con la barra de
- * navegación de la app.
+ * La tarjeta activa queda anclada al centro y las tarjetas vecinas se
+ * distribuyen a ambos lados con profundidad. El carrusel es circular para
+ * mantener la composición balanceada incluso en el primer y último plan.
+ * También admite swipe/drag horizontal, teclado y selección directa de una
+ * tarjeta vecina.
  */
 export function PlanGallery({ plans }: { plans: Plan[] }) {
   const [activeIndex, setActiveIndex] = useState(0);
+  const pointerStartX = useRef<number | null>(null);
+  const suppressNextClick = useRef(false);
+
+  if (!plans.length) return null;
+
   const active = plans[activeIndex];
 
   function goTo(index: number) {
-    if (index < 0 || index >= plans.length) return;
-    setActiveIndex(index);
+    setActiveIndex(wrapIndex(index, plans.length));
   }
 
-  if (!active) return null;
+  function goBy(delta: number) {
+    setActiveIndex((current) => wrapIndex(current + delta, plans.length));
+  }
+
+  function handlePointerDown(event: ReactPointerEvent<HTMLDivElement>) {
+    if (plans.length <= 1) return;
+    pointerStartX.current = event.clientX;
+    suppressNextClick.current = false;
+  }
+
+  function handlePointerUp(event: ReactPointerEvent<HTMLDivElement>) {
+    if (pointerStartX.current === null || plans.length <= 1) return;
+
+    const delta = event.clientX - pointerStartX.current;
+    pointerStartX.current = null;
+
+    if (Math.abs(delta) < 45) return;
+
+    suppressNextClick.current = true;
+    goBy(delta < 0 ? 1 : -1);
+  }
+
+  function handleCardClick(event: ReactMouseEvent<HTMLElement>, index: number, isActive: boolean) {
+    if (suppressNextClick.current) {
+      event.preventDefault();
+      suppressNextClick.current = false;
+      return;
+    }
+
+    if (!isActive) {
+      event.preventDefault();
+      goTo(index);
+    }
+  }
 
   return (
-    <div className="space-y-4">
-      <div className="relative h-80 sm:h-96">
-        {plans.map((plan, i) => {
-          const offset = i - activeIndex;
-          if (Math.abs(offset) > 1) return null;
-          const isActive = offset === 0;
-          const isPlus = plan.access_tier === "plus";
+    <section className="relative -mx-4 overflow-hidden px-4 pb-2 sm:-mx-6 sm:px-6" aria-label="Galería de planes bíblicos">
+      <div
+        className="relative mx-auto h-[398px] w-full max-w-4xl select-none sm:h-[438px]"
+        style={{ perspective: "1200px", touchAction: "pan-y" }}
+        tabIndex={0}
+        onKeyDown={(event) => {
+          if (event.key === "ArrowLeft") goBy(-1);
+          if (event.key === "ArrowRight") goBy(1);
+        }}
+        onPointerDown={handlePointerDown}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={() => {
+          pointerStartX.current = null;
+        }}
+      >
+        <div className="pointer-events-none absolute left-1/2 top-20 h-52 w-[72vw] max-w-2xl -translate-x-1/2 rounded-full bg-anil-300/20 blur-3xl" />
+        <div className="pointer-events-none absolute left-1/2 top-36 h-40 w-[54vw] max-w-xl -translate-x-1/2 rounded-full bg-cirio-500/15 blur-3xl" />
 
-          const cardInner = (
+        {plans.map((plan, index) => {
+          const rawPosition = getRelativePosition(index, activeIndex, plans.length);
+          if (Math.abs(rawPosition) > 2) return null;
+
+          const position = rawPosition as CardPosition;
+          const isActive = position === 0;
+          const isPlus = plan.access_tier === "plus";
+          const cardStyle = getCardStyle(position);
+
+          const content = (
             <>
-              <div className="relative h-2/5 w-full">
+              <div className="relative h-[43%] w-full overflow-hidden bg-anil-900">
                 <Image
                   src="/plans/lesson-cover-example.jpg"
                   alt=""
                   fill
-                  sizes="(max-width: 640px) 90vw, 420px"
-                  className="object-cover"
+                  sizes="(max-width: 640px) 78vw, 360px"
+                  className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.025]"
                   priority={isActive}
+                  draggable={false}
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-anil-900/90 via-transparent to-black/10" />
-                {isPlus ? (
-                  <span className="absolute left-4 top-4 rounded-full bg-cirio-500 px-3 py-1 text-xs font-bold text-anil-900">
-                    Soy Templo+
-                  </span>
-                ) : null}
+                <div className="absolute inset-0 bg-gradient-to-b from-black/5 via-transparent to-anil-900/85" />
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_22%_18%,rgba(142,182,155,0.34),transparent_46%)]" />
+
+                <div className="absolute inset-x-4 top-4 flex items-start justify-between gap-2">
+                  {isPlus ? (
+                    <span className="rounded-full border border-anil-50/25 bg-cirio-500/95 px-3 py-1 text-[11px] font-bold text-anil-900 shadow-sm backdrop-blur-md">
+                      Soy Templo+
+                    </span>
+                  ) : (
+                    <span className="rounded-full border border-anil-50/20 bg-anil-900/45 px-3 py-1 text-[11px] font-semibold text-anil-50 backdrop-blur-md">
+                      Plan bíblico
+                    </span>
+                  )}
+
+                  {plan.topic ? (
+                    <span className="max-w-[48%] truncate rounded-full border border-anil-50/15 bg-anil-900/35 px-3 py-1 text-[10px] font-medium text-anil-50/90 backdrop-blur-md">
+                      {plan.topic}
+                    </span>
+                  ) : null}
+                </div>
               </div>
-              <div className="glass-dark flex h-3/5 flex-col gap-2 p-5">
+
+              <div className="flex h-[57%] flex-col bg-[linear-gradient(155deg,rgba(35,83,71,0.94),rgba(5,31,32,0.97))] p-5 text-anil-50 backdrop-blur-xl sm:p-6">
                 <div className="flex flex-wrap gap-2">
                   <Badge tone="anil">{plan.duration_days} {t.plans.days}</Badge>
                   <Badge tone="balsamo">{t.plans.level[plan.level] ?? plan.level}</Badge>
                 </div>
-                <h3 className="font-display text-xl font-semibold">{plan.name}</h3>
-                <p className="line-clamp-2 text-sm text-anil-50/85">{plan.description}</p>
-                {isActive ? (
-                  <span className="mt-auto inline-flex items-center gap-1 text-sm font-semibold text-cirio-100">
-                    Ver plan →
+
+                <h3 className="mt-3 line-clamp-2 font-display text-[1.35rem] font-semibold leading-[1.12] text-anil-50 sm:text-2xl">
+                  {plan.name}
+                </h3>
+
+                <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-anil-50/78">
+                  {plan.description || "Un recorrido guiado para profundizar en la Palabra y ponerla en práctica."}
+                </p>
+
+                <div className="mt-auto flex items-center justify-between pt-3">
+                  <span className="text-sm font-semibold text-cirio-100">
+                    {isActive ? "Ver plan →" : "Tocar para ver"}
                   </span>
-                ) : null}
+                  {isActive ? (
+                    <span className="h-2 w-2 rounded-full bg-cirio-500 shadow-[0_0_0_5px_rgba(142,182,155,0.13)]" aria-hidden="true" />
+                  ) : null}
+                </div>
               </div>
             </>
           );
 
-          const cardClasses = cn(
-            "absolute inset-x-6 top-0 h-full overflow-hidden rounded-[var(--radius-card)] text-left shadow-xl transition-all duration-300 ease-out"
+          const sharedClasses = cn(
+            "group absolute left-1/2 top-3 h-[354px] w-[78vw] max-w-[350px] origin-center overflow-hidden rounded-[2rem] border border-anil-50/15 text-left shadow-[0_22px_55px_rgba(5,31,32,0.32)] transition-[transform,opacity,filter,box-shadow] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] sm:top-4 sm:h-[390px] sm:w-[360px] sm:max-w-[360px]",
+            isActive
+              ? "pointer-events-auto shadow-[0_28px_70px_rgba(5,31,32,0.42)]"
+              : "cursor-pointer hover:opacity-70"
           );
-          const cardStyle = {
-            transform:
-              offset === 0
-                ? "translateX(0) scale(1)"
-                : `translateX(${offset > 0 ? "78%" : "-78%"}) scale(0.9)`,
-            opacity: Math.abs(offset) > 1 ? 0 : isActive ? 1 : 0.55,
-            zIndex: isActive ? 30 : 10,
-          };
 
-          return isActive ? (
-            <Link key={plan.slug} href={`/planes/${plan.slug}`} className={cardClasses} style={cardStyle}>
-              {cardInner}
-            </Link>
-          ) : (
+          if (isActive) {
+            return (
+              <Link
+                key={plan.slug}
+                href={`/planes/${plan.slug}`}
+                className={sharedClasses}
+                style={cardStyle}
+                aria-label={`Abrir el plan ${plan.name}`}
+                onClick={(event) => handleCardClick(event, index, true)}
+              >
+                {content}
+              </Link>
+            );
+          }
+
+          return (
             <button
               key={plan.slug}
               type="button"
-              onClick={() => goTo(i)}
-              aria-label={`Ver ${plan.name}`}
-              className={cn(cardClasses, "cursor-pointer")}
+              className={sharedClasses}
               style={cardStyle}
+              aria-label={`Traer al frente el plan ${plan.name}`}
+              onClick={(event) => handleCardClick(event, index, false)}
             >
-              {cardInner}
+              {content}
             </button>
           );
         })}
       </div>
 
-      <div className="glass-dark mx-auto flex w-full max-w-xs items-center justify-between rounded-full px-2 py-2">
+      <div className="glass-dark relative z-50 mx-auto -mt-1 flex w-[min(90vw,390px)] items-center justify-between rounded-full px-2 py-2 shadow-[0_16px_36px_rgba(5,31,32,0.24)]">
         <button
           type="button"
-          onClick={() => goTo(activeIndex - 1)}
-          disabled={activeIndex === 0}
+          onClick={() => goBy(-1)}
+          disabled={plans.length <= 1}
           aria-label="Plan anterior"
-          className="flex h-10 w-10 items-center justify-center rounded-full text-anil-50 disabled:opacity-30"
+          className="flex h-11 w-11 items-center justify-center rounded-full text-lg text-anil-50 transition-colors hover:bg-anil-50/10 disabled:opacity-30"
         >
           ←
         </button>
-        <span className="text-sm font-semibold text-anil-50">
-          {activeIndex + 1} de {plans.length}
-        </span>
+
+        <div className="min-w-28 text-center" aria-live="polite">
+          <span className="block text-sm font-semibold text-anil-50">
+            {activeIndex + 1} de {plans.length}
+          </span>
+          <span className="mt-1.5 block h-1 overflow-hidden rounded-full bg-anil-50/12" aria-hidden="true">
+            <span
+              className="block h-full rounded-full bg-cirio-500 transition-[width] duration-500"
+              style={{ width: `${((activeIndex + 1) / plans.length) * 100}%` }}
+            />
+          </span>
+        </div>
+
         <button
           type="button"
-          onClick={() => goTo(activeIndex + 1)}
-          disabled={activeIndex === plans.length - 1}
+          onClick={() => goBy(1)}
+          disabled={plans.length <= 1}
           aria-label="Plan siguiente"
-          className="flex h-10 w-10 items-center justify-center rounded-full text-anil-50 disabled:opacity-30"
+          className="flex h-11 w-11 items-center justify-center rounded-full text-lg text-anil-50 transition-colors hover:bg-anil-50/10 disabled:opacity-30"
         >
           →
         </button>
       </div>
-    </div>
+
+      <p className="mt-3 text-center text-xs text-tinta-suave sm:hidden">
+        Desliza para explorar · {active?.name}
+      </p>
+    </section>
   );
 }
