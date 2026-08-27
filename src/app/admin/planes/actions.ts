@@ -22,6 +22,7 @@ const planSchema = z.object({
   durationDays: z.number().int().positive(),
   level: z.enum(["beginner", "intermediate", "advanced"]),
   topic: z.string().min(1),
+  accessTier: z.enum(["free", "plus"]),
   lessons: z.array(lessonSchema).min(1),
 });
 
@@ -64,6 +65,7 @@ export async function importPlans(rows: ParsedPlan[]): Promise<ImportPlansState>
         duration_days: plan.durationDays,
         level: plan.level,
         topic: plan.topic,
+        access_tier: plan.accessTier,
         status: "published",
         author_id: defaultAuthor?.id ?? null,
       })
@@ -99,5 +101,6 @@ export async function importPlans(rows: ParsedPlan[]): Promise<ImportPlansState>
 
   revalidatePath("/admin/planes");
   revalidatePath("/planes");
+  revalidatePath("/plus");
   return { ok: true, imported };
 }
