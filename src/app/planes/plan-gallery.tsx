@@ -1,269 +1,198 @@
 "use client";
 
-import { useRef, useState } from "react";
-import type { CSSProperties, MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent } from "react";
 import Link from "next/link";
-import Image from "next/image";
-import { Badge } from "@/components/ui/badge";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { CSSProperties, UIEvent } from "react";
 import { t } from "@/lib/i18n/es";
-import { cn } from "@/lib/utils";
+
+export type PlanThemeKey = "general" | "fe" | "miedo" | "esperanza" | "tristeza" | "gozo" | "identidad" | "gracia" | "sabiduria";
 
 type Plan = {
   slug: string;
   name: string;
   description: string | null;
+  cover_url: string | null;
   duration_days: number;
   level: string;
   topic: string | null;
   access_tier: string | null;
+  theme_key: PlanThemeKey | null;
 };
 
-type CardPosition = -2 | -1 | 0 | 1 | 2;
+type Theme = {
+  label: string;
+  accent: string;
+  soft: string;
+  page: string;
+};
 
-function wrapIndex(index: number, total: number) {
-  return ((index % total) + total) % total;
+const THEMES: Record<PlanThemeKey, Theme> = {
+  general: { label: "Descubrir", accent: "#8EB69B", soft: "rgba(142,182,155,.22)", page: "#102F2A" },
+  fe: { label: "Fe", accent: "#A78BFA", soft: "rgba(167,139,250,.24)", page: "#241B3A" },
+  miedo: { label: "Miedo", accent: "#F59E0B", soft: "rgba(245,158,11,.24)", page: "#332315" },
+  esperanza: { label: "Esperanza", accent: "#34D399", soft: "rgba(52,211,153,.23)", page: "#12372D" },
+  tristeza: { label: "Tristeza", accent: "#7DD3FC", soft: "rgba(125,211,252,.22)", page: "#162B3B" },
+  gozo: { label: "Gozo", accent: "#FBBF24", soft: "rgba(251,191,36,.23)", page: "#382C13" },
+  identidad: { label: "Identidad", accent: "#2DD4BF", soft: "rgba(45,212,191,.22)", page: "#113936" },
+  gracia: { label: "Gracia", accent: "#FB7185", soft: "rgba(251,113,133,.22)", page: "#3B1C25" },
+  sabiduria: { label: "Sabiduría", accent: "#60A5FA", soft: "rgba(96,165,250,.22)", page: "#172B46" },
+};
+
+function themeFor(plan: Plan) {
+  return THEMES[plan.theme_key ?? "general"] ?? THEMES.general;
 }
 
-function getRelativePosition(index: number, activeIndex: number, total: number) {
-  let distance = index - activeIndex;
-  const half = total / 2;
-
-  if (distance > half) distance -= total;
-  if (distance < -half) distance += total;
-
-  return distance;
-}
-
-function getCardStyle(position: CardPosition): CSSProperties {
-  const styles: Record<CardPosition, CSSProperties> = {
-    0: {
-      transform: "translate3d(-50%, 0, 0) scale(1) rotateY(0deg)",
-      opacity: 1,
-      zIndex: 40,
-      filter: "brightness(1) saturate(1)",
-    },
-    [-1]: {
-      transform: "translate3d(calc(-50% - min(43vw, 245px)), 22px, -75px) scale(0.88) rotateY(7deg)",
-      opacity: 0.52,
-      zIndex: 30,
-      filter: "brightness(0.72) saturate(0.8)",
-    },
-    1: {
-      transform: "translate3d(calc(-50% + min(43vw, 245px)), 22px, -75px) scale(0.88) rotateY(-7deg)",
-      opacity: 0.52,
-      zIndex: 30,
-      filter: "brightness(0.72) saturate(0.8)",
-    },
-    [-2]: {
-      transform: "translate3d(calc(-50% - min(67vw, 375px)), 42px, -150px) scale(0.76) rotateY(10deg)",
-      opacity: 0.2,
-      zIndex: 20,
-      filter: "brightness(0.58) saturate(0.68)",
-    },
-    2: {
-      transform: "translate3d(calc(-50% + min(67vw, 375px)), 42px, -150px) scale(0.76) rotateY(-10deg)",
-      opacity: 0.2,
-      zIndex: 20,
-      filter: "brightness(0.58) saturate(0.68)",
-    },
-  };
-
-  return styles[position];
-}
-
-/**
- * Galería coverflow de planes.
- *
- * La tarjeta activa queda anclada al centro y las tarjetas vecinas se
- * distribuyen a ambos lados con profundidad. El carrusel es circular para
- * mantener la composición balanceada incluso en el primer y último plan.
- * La navegación visual se hace directamente con swipe/drag horizontal,
- * teclado o tocando una tarjeta vecina.
- */
 export function PlanGallery({ plans }: { plans: Plan[] }) {
   const [activeIndex, setActiveIndex] = useState(0);
-  const pointerStartX = useRef<number | null>(null);
-  const suppressNextClick = useRef(false);
+  const viewportRef = useRef<HTMLDivElement>(null);
+  const slideRefs = useRef<(HTMLElement | null)[]>([]);
+  const scrollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const activePlan = plans[activeIndex] ?? plans[0];
+  const activeTheme = activePlan ? themeFor(activePlan) : THEMES.general;
+
+  const pageStyle = useMemo(() => ({
+    "--plan-accent": activeTheme.accent,
+    "--plan-page": activeTheme.page,
+    background: `radial-gradient(circle at 20% 0%, ${activeTheme.soft}, transparent 34%), linear-gradient(160deg, ${activeTheme.page}, #071D1B 72%)`,
+  }) as CSSProperties, [activeTheme]);
+
+  useEffect(() => () => {
+    if (scrollTimer.current) clearTimeout(scrollTimer.current);
+  }, []);
 
   if (!plans.length) return null;
 
   function goTo(index: number) {
-    setActiveIndex(wrapIndex(index, plans.length));
+    const safe = Math.max(0, Math.min(index, plans.length - 1));
+    slideRefs.current[safe]?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+    setActiveIndex(safe);
   }
 
-  function goBy(delta: number) {
-    setActiveIndex((current) => wrapIndex(current + delta, plans.length));
-  }
-
-  function handlePointerDown(event: ReactPointerEvent<HTMLDivElement>) {
-    if (plans.length <= 1) return;
-    pointerStartX.current = event.clientX;
-    suppressNextClick.current = false;
-  }
-
-  function handlePointerUp(event: ReactPointerEvent<HTMLDivElement>) {
-    if (pointerStartX.current === null || plans.length <= 1) return;
-
-    const delta = event.clientX - pointerStartX.current;
-    pointerStartX.current = null;
-
-    if (Math.abs(delta) < 45) return;
-
-    suppressNextClick.current = true;
-    goBy(delta < 0 ? 1 : -1);
-  }
-
-  function handleCardClick(event: ReactMouseEvent<HTMLElement>, index: number, isActive: boolean) {
-    if (suppressNextClick.current) {
-      event.preventDefault();
-      suppressNextClick.current = false;
-      return;
-    }
-
-    if (!isActive) {
-      event.preventDefault();
-      goTo(index);
-    }
+  function handleScroll(event: UIEvent<HTMLDivElement>) {
+    const viewport = event.currentTarget;
+    if (scrollTimer.current) clearTimeout(scrollTimer.current);
+    scrollTimer.current = setTimeout(() => {
+      const center = viewport.scrollLeft + viewport.clientWidth / 2;
+      let nearestIndex = 0;
+      let nearestDistance = Number.POSITIVE_INFINITY;
+      slideRefs.current.forEach((slide, index) => {
+        if (!slide) return;
+        const slideCenter = slide.offsetLeft + slide.offsetWidth / 2;
+        const distance = Math.abs(slideCenter - center);
+        if (distance < nearestDistance) {
+          nearestDistance = distance;
+          nearestIndex = index;
+        }
+      });
+      setActiveIndex(nearestIndex);
+    }, 70);
   }
 
   return (
-    <section className="relative -mx-4 overflow-hidden px-4 pb-2 sm:-mx-6 sm:px-6" aria-label="Galería de planes bíblicos">
-      <div
-        className="relative mx-auto h-[444px] w-full max-w-4xl select-none sm:h-[468px]"
-        style={{ perspective: "1200px", touchAction: "pan-y" }}
-        tabIndex={0}
-        onKeyDown={(event) => {
-          if (event.key === "ArrowLeft") goBy(-1);
-          if (event.key === "ArrowRight") goBy(1);
-        }}
-        onPointerDown={handlePointerDown}
-        onPointerUp={handlePointerUp}
-        onPointerCancel={() => {
-          pointerStartX.current = null;
-        }}
-      >
-        <div className="pointer-events-none absolute left-1/2 top-20 h-52 w-[72vw] max-w-2xl -translate-x-1/2 rounded-full bg-anil-300/20 blur-3xl" />
-        <div className="pointer-events-none absolute left-1/2 top-36 h-40 w-[54vw] max-w-xl -translate-x-1/2 rounded-full bg-cirio-500/15 blur-3xl" />
+    <section
+      className="relative left-1/2 -mt-4 min-h-[calc(100dvh-4rem)] w-screen -translate-x-1/2 overflow-hidden text-white transition-[background] duration-700 md:-mt-4"
+      style={pageStyle}
+      aria-label="Planes bíblicos"
+    >
+      <div className="pointer-events-none absolute inset-0 opacity-55" style={{ background: `radial-gradient(circle at 82% 14%, ${activeTheme.soft}, transparent 28%)` }} />
+      <div className="relative z-10 mx-auto flex min-h-[calc(100dvh-4rem)] w-full max-w-[1100px] flex-col pb-24 pt-6 md:pb-10 md:pt-8">
+        <header className="mb-4 flex items-end justify-between gap-4 px-5 sm:px-8">
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-white/55">Biblioteca · Soy Templo</p>
+            <h1 className="mt-1 font-display text-3xl font-semibold sm:text-4xl">Planes</h1>
+            <p className="mt-1 max-w-xl text-sm text-white/62">Desliza para explorar una experiencia distinta para cada momento de tu vida.</p>
+          </div>
+          <span className="hidden rounded-full border border-white/15 bg-white/8 px-3 py-1.5 text-xs font-semibold text-white/72 backdrop-blur-xl sm:inline-flex">
+            {activeIndex + 1} / {plans.length}
+          </span>
+        </header>
 
-        {plans.map((plan, index) => {
-          const rawPosition = getRelativePosition(index, activeIndex, plans.length);
-          if (Math.abs(rawPosition) > 2) return null;
+        <div
+          ref={viewportRef}
+          onScroll={handleScroll}
+          className="plan-carousel-scroll flex flex-1 snap-x snap-mandatory items-stretch gap-4 overflow-x-auto scroll-smooth px-[8vw] pb-3 pt-1 sm:gap-6 sm:px-[12vw] md:px-[15vw]"
+          style={{ scrollbarWidth: "none", overscrollBehaviorX: "contain" }}
+          tabIndex={0}
+          onKeyDown={(event) => {
+            if (event.key === "ArrowLeft") goTo(activeIndex - 1);
+            if (event.key === "ArrowRight") goTo(activeIndex + 1);
+          }}
+        >
+          {plans.map((plan, index) => {
+            const theme = themeFor(plan);
+            const isActive = index === activeIndex;
+            const isPlus = plan.access_tier === "plus";
+            const image = plan.cover_url || "/plans/lesson-cover-example.jpg";
 
-          const position = rawPosition as CardPosition;
-          const isActive = position === 0;
-          const isPlus = plan.access_tier === "plus";
-          const cardStyle = getCardStyle(position);
-
-          const content = (
-            <>
-              <div className="relative h-[40%] w-full overflow-hidden bg-anil-900">
-                <Image
-                  src="/plans/lesson-cover-example.jpg"
-                  alt=""
-                  fill
-                  sizes="(max-width: 640px) 78vw, 360px"
-                  className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.025]"
-                  priority={isActive}
-                  draggable={false}
-                />
-                <div className="absolute inset-0 bg-gradient-to-b from-black/5 via-transparent to-anil-900/85" />
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_22%_18%,rgba(142,182,155,0.34),transparent_46%)]" />
-
-                <div className="absolute inset-x-4 top-4 flex items-start justify-between gap-2">
-                  {isPlus ? (
-                    <span className="rounded-full border border-anil-50/25 bg-cirio-500/95 px-3 py-1 text-[11px] font-bold text-anil-900 shadow-sm backdrop-blur-md">
-                      Soy Templo+
-                    </span>
-                  ) : (
-                    <span className="rounded-full border border-anil-50/20 bg-anil-900/45 px-3 py-1 text-[11px] font-semibold text-anil-50 backdrop-blur-md">
-                      Plan bíblico
-                    </span>
-                  )}
-
-                  {plan.topic ? (
-                    <span className="max-w-[48%] truncate rounded-full border border-anil-50/15 bg-anil-900/35 px-3 py-1 text-[10px] font-medium text-anil-50/90 backdrop-blur-md">
-                      {plan.topic}
-                    </span>
-                  ) : null}
-                </div>
-              </div>
-
-              <div className="flex h-[60%] flex-col bg-[linear-gradient(155deg,rgba(35,83,71,0.94),rgba(5,31,32,0.97))] p-5 text-anil-50 backdrop-blur-xl sm:p-6">
-                <div className="flex flex-wrap gap-2">
-                  <Badge tone="anil">{plan.duration_days} {t.plans.days}</Badge>
-                  <Badge tone="balsamo">{t.plans.level[plan.level] ?? plan.level}</Badge>
-                </div>
-
-                <h3 className="mt-3 line-clamp-2 font-display text-[1.35rem] font-semibold leading-[1.12] text-anil-50 sm:text-2xl">
-                  {plan.name}
-                </h3>
-
-                <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-anil-50/78">
-                  {plan.description || "Un recorrido guiado para profundizar en la Palabra y ponerla en práctica."}
-                </p>
-
-                <div className="mt-auto flex items-center justify-between pt-3">
-                  <span className="text-sm font-semibold text-cirio-100">
-                    {isActive ? "Ver plan →" : "Tocar para ver"}
-                  </span>
-                  {isActive ? (
-                    <span className="h-2 w-2 rounded-full bg-cirio-500 shadow-[0_0_0_5px_rgba(142,182,155,0.13)]" aria-hidden="true" />
-                  ) : null}
-                </div>
-              </div>
-            </>
-          );
-
-          const sharedClasses = cn(
-            "group absolute left-1/2 top-3 h-[400px] w-[78vw] max-w-[350px] origin-center overflow-hidden rounded-[2rem] border border-anil-50/15 text-left shadow-[0_22px_55px_rgba(5,31,32,0.32)] transition-[transform,opacity,filter,box-shadow] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] sm:top-4 sm:h-[420px] sm:w-[360px] sm:max-w-[360px]",
-            isActive
-              ? "plan-card-hop pointer-events-auto shadow-[0_28px_70px_rgba(5,31,32,0.42)]"
-              : "cursor-pointer hover:opacity-70"
-          );
-
-          if (isActive) {
             return (
-              <Link
+              <article
                 key={plan.slug}
-                href={`/planes/${plan.slug}`}
-                className={sharedClasses}
-                style={cardStyle}
-                aria-label={`Abrir el plan ${plan.name}`}
-                onClick={(event) => handleCardClick(event, index, true)}
+                ref={(node) => { slideRefs.current[index] = node; }}
+                className={`relative h-[calc(100dvh-12.2rem)] min-h-[540px] max-h-[760px] w-[84vw] max-w-[760px] shrink-0 snap-center overflow-hidden rounded-[2.25rem] border transition-[transform,opacity,filter,box-shadow] duration-500 sm:w-[72vw] md:w-[64vw] ${isActive ? "scale-100 border-white/28 opacity-100 shadow-[0_35px_100px_rgba(0,0,0,.42)]" : "scale-[.94] border-white/12 opacity-55 saturate-[.78]"}`}
+                style={{ backgroundColor: theme.page }}
               >
-                {content}
-              </Link>
-            );
-          }
+                <div
+                  className="absolute inset-0 bg-cover bg-center transition-transform duration-700"
+                  style={{ backgroundImage: `url(${JSON.stringify(image).slice(1, -1)})`, transform: isActive ? "scale(1.01)" : "scale(1.055)" }}
+                  aria-hidden="true"
+                />
+                <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,.10)_0%,rgba(0,0,0,.05)_32%,rgba(4,20,20,.68)_66%,rgba(4,18,18,.96)_100%)]" />
+                <div className="absolute inset-0" style={{ background: `linear-gradient(145deg, ${theme.soft}, transparent 44%)` }} />
 
-          return (
-            <button
-              key={plan.slug}
-              type="button"
-              className={sharedClasses}
-              style={cardStyle}
-              aria-label={`Traer al frente el plan ${plan.name}`}
-              onClick={(event) => handleCardClick(event, index, false)}
-            >
-              {content}
-            </button>
-          );
-        })}
+                <div className="absolute inset-x-0 top-0 flex items-start justify-between gap-3 p-5 sm:p-7">
+                  <span className="rounded-full border border-white/22 bg-black/18 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.14em] text-white shadow-sm backdrop-blur-xl" style={{ boxShadow: `inset 0 0 0 1px ${theme.soft}` }}>
+                    {theme.label}
+                  </span>
+                  {isPlus ? (
+                    <span className="rounded-full border border-white/20 bg-white/90 px-3 py-1.5 text-[11px] font-extrabold text-[#112D28] shadow-sm backdrop-blur-xl">Soy Templo+</span>
+                  ) : (
+                    <span className="rounded-full border border-white/18 bg-black/18 px-3 py-1.5 text-[11px] font-semibold text-white/88 backdrop-blur-xl">Gratis</span>
+                  )}
+                </div>
+
+                <div className="absolute inset-x-0 bottom-0 p-5 sm:p-8">
+                  <div className="max-w-2xl">
+                    {plan.topic ? <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/62">{plan.topic}</p> : null}
+                    <h2 className="mt-2 max-w-[17ch] font-display text-[2rem] font-semibold leading-[1.02] text-white drop-shadow-md sm:text-5xl">{plan.name}</h2>
+                    <p className="mt-3 line-clamp-3 max-w-xl text-sm leading-relaxed text-white/76 sm:text-base">{plan.description || "Un recorrido guiado para profundizar en la Palabra y ponerla en práctica."}</p>
+
+                    <div className="mt-5 flex flex-wrap items-center gap-2">
+                      <span className="rounded-full border border-white/18 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/90 backdrop-blur-xl">{plan.duration_days} {t.plans.days}</span>
+                      <span className="rounded-full border border-white/18 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/90 backdrop-blur-xl">{t.plans.level[plan.level] ?? plan.level}</span>
+                    </div>
+
+                    <div className="mt-6 flex items-center gap-3">
+                      <Link
+                        href={`/planes/${plan.slug}`}
+                        className="inline-flex items-center rounded-full px-5 py-3 text-sm font-bold text-[#0C2823] shadow-[0_12px_34px_rgba(0,0,0,.22)] transition hover:brightness-105"
+                        style={{ backgroundColor: theme.accent }}
+                      >
+                        Abrir plan →
+                      </Link>
+                      {isPlus ? <span className="text-xs font-semibold text-white/62">Incluido con Soy Templo+</span> : null}
+                    </div>
+                  </div>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+
+        <div className="mt-2 flex items-center justify-center gap-4 px-5">
+          <button type="button" onClick={() => goTo(activeIndex - 1)} disabled={activeIndex === 0} className="grid h-10 w-10 place-items-center rounded-full border border-white/15 bg-white/8 text-white/80 backdrop-blur-xl transition hover:bg-white/14 disabled:opacity-25" aria-label="Plan anterior">←</button>
+          <div className="flex items-center gap-1.5" aria-label={`Plan ${activeIndex + 1} de ${plans.length}`}>
+            {plans.map((plan, index) => (
+              <button key={plan.slug} type="button" onClick={() => goTo(index)} className={`h-1.5 rounded-full transition-all duration-300 ${index === activeIndex ? "w-7 bg-white" : "w-1.5 bg-white/30"}`} aria-label={`Ver ${plan.name}`} />
+            ))}
+          </div>
+          <button type="button" onClick={() => goTo(activeIndex + 1)} disabled={activeIndex === plans.length - 1} className="grid h-10 w-10 place-items-center rounded-full border border-white/15 bg-white/8 text-white/80 backdrop-blur-xl transition hover:bg-white/14 disabled:opacity-25" aria-label="Plan siguiente">→</button>
+        </div>
       </div>
 
       <style jsx global>{`
-        @keyframes plan-card-hop {
-          0%, 100% { translate: 0 0; }
-          46% { translate: 0 -9px; }
-          72% { translate: 0 2px; }
-        }
-
-        .plan-card-hop {
-          animation: plan-card-hop 380ms cubic-bezier(0.22, 1, 0.36, 1);
-        }
-
+        .plan-carousel-scroll::-webkit-scrollbar { display: none; }
         @media (prefers-reduced-motion: reduce) {
-          .plan-card-hop { animation: none; }
+          .plan-carousel-scroll { scroll-behavior: auto !important; }
         }
       `}</style>
     </section>
