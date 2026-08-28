@@ -11,18 +11,18 @@ export function todayInElSalvador() {
 export function monthRange(month: string) {
   const match = /^(\d{4})-(\d{2})$/.exec(month);
   if (!match) throw new Error("Mes inválido");
-  const year = Number(match[1]);
-  const monthNumber = Number(match[2]);
+  const year = Number(match[1] ?? 0);
+  const monthNumber = Number(match[2] ?? 0);
+  if (monthNumber < 1 || monthNumber > 12) throw new Error("Mes inválido");
   const nextYear = monthNumber === 12 ? year + 1 : year;
   const nextMonth = monthNumber === 12 ? 1 : monthNumber + 1;
-  return {
-    start: `${month}-01T00:00:00-06:00`,
-    end: `${nextYear}-${String(nextMonth).padStart(2, "0")}-01T00:00:00-06:00`,
-  };
+  return { start: `${month}-01T00:00:00-06:00`, end: `${nextYear}-${String(nextMonth).padStart(2, "0")}-01T00:00:00-06:00` };
 }
 
 export function shiftMonth(month: string, delta: number) {
-  const [year, monthNumber] = month.split("-").map(Number);
+  const parts = month.split("-");
+  const year = Number(parts[0] ?? 1970);
+  const monthNumber = Number(parts[1] ?? 1);
   const d = new Date(Date.UTC(year, monthNumber - 1 + delta, 1));
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
 }

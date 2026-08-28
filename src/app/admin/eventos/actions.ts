@@ -15,10 +15,11 @@ const commonSchema = z.object({
 function optional(formData: FormData, key: string) { const value=String(formData.get(key) ?? "").trim(); return value || undefined; }
 function localIso(value: string) { return `${value.length===16 ? `${value}:00` : value}-06:00`; }
 function slugify(value: string) { return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 70) || "actividad"; }
-function dateOnly(input: string) { return input.split("T")[0]; }
+function dateOnly(input: string) { return input.split("T")[0] ?? input; }
 function timeOnly(input: string) { return input.split("T")[1]?.slice(0,5) ?? "00:00"; }
-function dayOfWeek(date: string) { const [y,m,d]=date.split("-").map(Number); return new Date(Date.UTC(y,m-1,d,12)).getUTCDay(); }
-function addDays(date: string, amount: number) { const [y,m,d]=date.split("-").map(Number); const x=new Date(Date.UTC(y,m-1,d+amount,12)); return `${x.getUTCFullYear()}-${String(x.getUTCMonth()+1).padStart(2,"0")}-${String(x.getUTCDate()).padStart(2,"0")}`; }
+function parseDateParts(date: string): [number, number, number] { const parts=date.split("-"); return [Number(parts[0] ?? 1970), Number(parts[1] ?? 1), Number(parts[2] ?? 1)]; }
+function dayOfWeek(date: string) { const [y,m,d]=parseDateParts(date); return new Date(Date.UTC(y,m-1,d,12)).getUTCDay(); }
+function addDays(date: string, amount: number) { const [y,m,d]=parseDateParts(date); const x=new Date(Date.UTC(y,m-1,d+amount,12)); return `${x.getUTCFullYear()}-${String(x.getUTCMonth()+1).padStart(2,"0")}-${String(x.getUTCDate()).padStart(2,"0")}`; }
 function compareDate(a: string,b: string) { return a.localeCompare(b); }
 
 function recurringDates(start: string, kind: "single"|"weekly"|"monthly", until: string | undefined, weekdays: number[]) {
@@ -31,7 +32,7 @@ function recurringDates(start: string, kind: "single"|"weekly"|"monthly", until:
     const selected=weekdays.length ? new Set(weekdays) : new Set([dayOfWeek(start)]);
     for (let cursor=start, guard=0; compareDate(cursor,until)<=0 && guard<560; cursor=addDays(cursor,1),guard++) if (selected.has(dayOfWeek(cursor))) out.push(cursor);
   } else {
-    const [sy,sm,sd]=start.split("-").map(Number); let year=sy, month=sm;
+    const [sy,sm,sd]=parseDateParts(start); let year=sy, month=sm;
     for (let guard=0; guard<20; guard++) {
       const candidate=new Date(Date.UTC(year,month-1,sd,12));
       if (candidate.getUTCMonth()===month-1) {
