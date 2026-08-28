@@ -33,7 +33,9 @@ export function PlanImportForm() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="font-display text-xl font-semibold text-anil-800">Importar planes desde Markdown</h2>
-          <p className="mt-1 text-sm text-tinta-suave">Puedes pegar varios planes completos en un solo archivo. Usa <strong>Acceso: premium</strong> para Soy Templo+; si lo omites será gratuito.</p>
+          <p className="mt-1 max-w-2xl text-sm text-tinta-suave">
+            Además del tema teológico, puedes definir <strong>Enfoque</strong> para el color visual (fe, miedo, esperanza, tristeza, gozo, identidad, gracia o sabiduría) y una <strong>Imagen</strong> para la portada inmersiva. Usa <strong>Acceso: premium</strong> para Soy Templo+.
+          </p>
         </div>
         <div>
           <input ref={inputRef} type="file" accept=".md,.markdown,text/markdown,text/plain" className="hidden" onChange={(e) => { const file = e.target.files?.[0]; if (file) handleFile(file); }} />
@@ -41,7 +43,13 @@ export function PlanImportForm() {
         </div>
       </div>
 
-      <Textarea value={markdown} onChange={(e) => { setMarkdown(e.target.value); setResult(null); }} className="min-h-80 font-mono text-sm" placeholder="# PLAN: Nombre del plan\n\n**Descripción:** ...\n**Duración:** 5 días\n**Nivel:** intermedio\n**Tema:** ...\n**Acceso:** premium\n\n## LECCIÓN 1: ..." />
+      <div className="rounded-[var(--radius-card)] border border-manta bg-manta/40 p-4 text-xs leading-relaxed text-tinta-suave">
+        <strong className="text-anil-800">Metadatos visuales opcionales:</strong><br />
+        <code>**Enfoque:** esperanza</code><br />
+        <code>**Imagen:** /ruta/imagen.jpg</code>
+      </div>
+
+      <Textarea value={markdown} onChange={(e) => { setMarkdown(e.target.value); setResult(null); }} className="min-h-80 font-mono text-sm" placeholder="# PLAN: Nombre del plan\n\n**Descripción:** ...\n**Duración:** 5 días\n**Nivel:** intermedio\n**Tema:** ...\n**Enfoque:** esperanza\n**Imagen:** /ruta/imagen.jpg\n**Acceso:** premium\n\n## LECCIÓN 1: ..." />
 
       {markdown.trim() ? (
         <div className="space-y-3">
@@ -57,6 +65,8 @@ export function PlanImportForm() {
               </div>
               <div className="mt-2 flex flex-wrap items-center gap-2">
                 <span className="text-sm text-tinta-suave">{plan.topic}</span>
+                <span className="rounded-full bg-manta px-2.5 py-1 text-xs font-semibold text-tinta-suave">Enfoque: {plan.themeKey}</span>
+                {plan.coverUrl ? <span className="rounded-full bg-balsamo-100 px-2.5 py-1 text-xs font-semibold text-balsamo-700">Con imagen</span> : null}
                 {plan.accessTier === "plus" ? (
                   <span className="rounded-full bg-anil-600 px-2.5 py-1 text-xs font-semibold text-white">Soy Templo+</span>
                 ) : (
