@@ -1,3 +1,81 @@
-import type{Metadata}from"next";import{createClient}from"@/lib/supabase/server";import{Card}from"@/components/ui/card";import{Badge}from"@/components/ui/badge";import{EmptyState}from"@/components/ui/empty-state";import{PageHero}from"@/components/layout/page-hero";import{t}from"@/lib/i18n/es";import Link from"next/link";export const metadata:Metadata={title:"Anuncios"};export const dynamic="force-dynamic";
-const categoryLabels:Record<string,string>={general:"Información general",jovenes:"Jóvenes",ninos:"Niños",mujeres:"Mujeres",hombres:"Hombres",discipulado:"Discipulado",servicio:"Servicio comunitario",creativo:"Ministerio creativo",especiales:"Actividades especiales"};
-export default async function AnnouncementsPage(){const supabase=await createClient();const now=new Date().toISOString();const{data:announcements}=await supabase.from("announcements").select("id,title,description,category,action_label,action_url,publish_at,image_url,is_featured").eq("status","published").lte("publish_at",now).or(`expires_at.is.null,expires_at.gte.${now}`).order("is_featured",{ascending:false}).order("priority",{ascending:false}).order("publish_at",{ascending:false});return <div className="space-y-5"><PageHero title={t.nav.announcements}/>{announcements?.length?<ul className="space-y-4">{announcements.map((a,i)=><li key={a.id} className="stagger-item" style={{animationDelay:`${i*40}ms`}}><Card>{a.image_url?<img src={a.image_url} alt="" className="mb-4 max-h-64 w-full rounded-2xl object-cover"/>:null}<div className="flex flex-wrap items-center gap-2"><Badge tone="anil">{categoryLabels[a.category]??a.category}</Badge>{a.is_featured?<span className="text-xs font-semibold">★ Destacado</span>:null}</div><h2 className="mt-2 font-display text-xl font-semibold">{a.title}</h2><p className="mt-1 leading-relaxed text-tinta-suave">{a.description}</p>{a.action_url&&a.action_label?<Link href={a.action_url} className="mt-3 inline-block font-semibold text-anil-600">{a.action_label} →</Link>:null}</Card></li>)}</ul>:<EmptyState title="No hay anuncios por el momento."/>}</div>}
+import type { Metadata } from "next";
+import { createClient } from "@/lib/supabase/server";
+import { PageHero } from "@/components/layout/page-hero";
+import { t } from "@/lib/i18n/es";
+import { AnnouncementsCalendar, type CalendarAnnouncement } from "./announcements-calendar";
+
+export const metadata: Metadata = { title: "Anuncios" };
+export const dynamic = "force-dynamic";
+
+const TZ = "America/El_Salvador";
+
+function todayInElSalvador(): { year: number; month: number; day: number } {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: TZ,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  const get = (type: string) => Number(parts.find((p) => p.type === type)?.value);
+  return { year: get("year"), month: get("month"), day: get("day") };
+}
+
+/** Día del mes (1-31) de una fecha ISO, en hora de El Salvador. */
+function dayOfMonthInElSalvador(iso: string): number {
+  const parts = new Intl.DateTimeFormat("en-CA", { timeZone: TZ, day: "2-digit" }).formatToParts(new Date(iso));
+  return Number(parts.find((p) => p.type === "day")?.value);
+}
+
+export default async function AnnouncementsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ y?: string; m?: string }>;
+}) {
+  const { y, m } = await searchParams;
+  const today = todayInElSalvador();
+
+  const year = Number(y) || today.year;
+  const month = Number(m) || today.month; // 1-12
+  const isCurrentMonth = year === today.year && month === today.month;
+
+  // Rango del mes en UTC aproximado (suficiente para filtrar; el día exacto
+  // de cada anuncio se recalcula abajo en hora de El Salvador).
+  const monthStart = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0));
+  const monthEnd = new Date(Date.UTC(year, month, 1, 0, 0, 0));
+  // Colchón de un día a cada lado para no perder anuncios cerca del cambio de mes por zona horaria.
+  monthStart.setUTCDate(monthStart.getUTCDate() - 1);
+  monthEnd.setUTCDate(monthEnd.getUTCDate() + 1);
+
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("announcements")
+    .select("id, title, description, category, action_label, action_url, image_url, is_featured, publish_at")
+    .eq("status", "published")
+    .eq("display_on_agenda", true)
+    .gte("publish_at", monthStart.toISOString())
+    .lt("publish_at", monthEnd.toISOString())
+    .order("priority", { ascending: false })
+    .order("publish_at", { ascending: true });
+
+  const announcements: CalendarAnnouncement[] = (data ?? [])
+    .map((a) => ({ ...a, day: dayOfMonthInElSalvador(a.publish_at) }))
+    // vuelve a filtrar por si el colchón de zona horaria trajo un día del mes vecino
+    .filter((a) => {
+      const d = new Date(a.publish_at);
+      const local = new Intl.DateTimeFormat("en-CA", { timeZone: TZ, year: "numeric", month: "2-digit" }).format(d);
+      return local === `${year}-${String(month).padStart(2, "0")}`;
+    });
+
+  return (
+    <div className="space-y-5">
+      <PageHero title={t.nav.announcements} />
+      <AnnouncementsCalendar
+        year={year}
+        month={month}
+        announcements={announcements}
+        todayDay={isCurrentMonth ? today.day : null}
+        isCurrentMonth={isCurrentMonth}
+      />
+    </div>
+  );
+}
