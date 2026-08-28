@@ -22,6 +22,8 @@ const planSchema = z.object({
   durationDays: z.number().int().positive(),
   level: z.enum(["beginner", "intermediate", "advanced"]),
   topic: z.string().min(1),
+  themeKey: z.enum(["general", "fe", "miedo", "esperanza", "tristeza", "gozo", "identidad", "gracia", "sabiduria"]),
+  coverUrl: z.string().min(1).nullable(),
   accessTier: z.enum(["free", "plus"]),
   lessons: z.array(lessonSchema).min(1),
 });
@@ -62,9 +64,11 @@ export async function importPlans(rows: ParsedPlan[]): Promise<ImportPlansState>
         slug: plan.slug,
         name: plan.name,
         description: plan.description,
+        cover_url: plan.coverUrl,
         duration_days: plan.durationDays,
         level: plan.level,
         topic: plan.topic,
+        theme_key: plan.themeKey,
         access_tier: plan.accessTier,
         status: "published",
         author_id: defaultAuthor?.id ?? null,
@@ -73,9 +77,7 @@ export async function importPlans(rows: ParsedPlan[]): Promise<ImportPlansState>
       .single();
 
     if (planError || !savedPlan) {
-      return {
-        error: `No se pudo guardar el plan “${plan.name}”.${planError?.message ? ` ${planError.message}` : ""}`,
-      };
+      return { error: `No se pudo guardar el plan “${plan.name}”.${planError?.message ? ` ${planError.message}` : ""}` };
     }
 
     const { error: lessonsError } = await supabase.from("bible_plan_lessons").insert(
@@ -92,9 +94,7 @@ export async function importPlans(rows: ParsedPlan[]): Promise<ImportPlansState>
     );
     if (lessonsError) {
       await supabase.from("bible_plans").delete().eq("id", savedPlan.id);
-      return {
-        error: `No se pudieron guardar las lecciones de “${plan.name}”. ${lessonsError.message}`,
-      };
+      return { error: `No se pudieron guardar las lecciones de “${plan.name}”. ${lessonsError.message}` };
     }
     imported += 1;
   }
