@@ -346,3 +346,16 @@ h1, h2, h3, .font-display {
     animation: none !important;
   }
 }
+
+/* Imagen de fondo del mes en el calendario: entra con un cruce suave
+   al cambiar de mes, para que se sienta como un lugar distinto. */
+@keyframes month-fade-in {
+  from { opacity: 0; transform: scale(1.04); }
+  to { opacity: 1; transform: scale(1); }
+}
+.animate-month-fade {
+  animation: month-fade-in 600ms ease-out both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-month-fade { animation: none; }
+}

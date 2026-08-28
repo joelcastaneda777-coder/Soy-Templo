@@ -75,6 +75,7 @@ export default async function AnnouncementsPage({
         announcements={announcements}
         todayDay={isCurrentMonth ? today.day : null}
         isCurrentMonth={isCurrentMonth}
+        monthImageSrc={`/anuncios-backgrounds/month-${String(month).padStart(2, "0")}.jpg`}
       />
     </div>
   );
