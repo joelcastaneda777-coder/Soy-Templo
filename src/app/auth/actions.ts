@@ -11,10 +11,16 @@ const credentialsSchema = z.object({
 });
 
 const emailSchema = z.string().trim().email("Correo inválido");
+const PRODUCTION_SITE_URL = "https://soy-templo.vercel.app";
 
 function confirmationRedirect() {
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "");
-  return siteUrl ? `${siteUrl}/auth/callback?next=/oracion` : undefined;
+  const configuredSiteUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "");
+  const siteUrl =
+    configuredSiteUrl && !/^https?:\/\/(localhost|127\.0\.0\.1)(?::\d+)?$/i.test(configuredSiteUrl)
+      ? configuredSiteUrl
+      : PRODUCTION_SITE_URL;
+
+  return `${siteUrl}/auth/callback?next=/oracion`;
 }
 
 export type AuthState = {
