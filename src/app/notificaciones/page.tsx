@@ -1,0 +1,12 @@
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import type { Metadata } from "next";
+import { createClient } from "@/lib/supabase/server";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
+import { PageHero } from "@/components/layout/page-hero";
+import { markAllNotificationsRead, markNotificationRead } from "./actions";
+export const metadata:Metadata={title:"Notificaciones"};
+function dateLabel(v:string){return new Intl.DateTimeFormat("es-SV",{dateStyle:"medium",timeStyle:"short",timeZone:"America/El_Salvador"}).format(new Date(v));}
+export default async function NotificationsPage(){const supabase=await createClient();const {data:{user}}=await supabase.auth.getUser();if(!user)redirect("/auth/login?next=/notificaciones");const {data}=await supabase.from("user_notifications").select("id,kind,title,body,url,read_at,created_at").order("created_at",{ascending:false}).limit(100);const rows=data??[];const unread=rows.filter(r=>!r.read_at).length;return <div className="space-y-6"><PageHero title="Notificaciones" subtitle="Avisos de seguimiento y responsabilidades dentro de Soy Templo."/><div className="mx-auto max-w-3xl space-y-3"><div className="flex items-center justify-between"><p className="text-sm text-tinta-suave">{unread?`${unread} sin leer`:"Todo al día"}</p>{unread?<form action={markAllNotificationsRead}><button className="text-sm font-semibold text-anil-600">Marcar todas como leídas</button></form>:null}</div>{!rows.length?<EmptyState title="Aún no tienes notificaciones."/>:rows.map(r=><Card key={r.id} className={!r.read_at?"border-anil-300":"opacity-75"}><div className="flex items-start justify-between gap-3"><div><div className="flex items-center gap-2"><p className="font-semibold text-anil-800">{r.title}</p>{!r.read_at?<Badge tone="anil">Nueva</Badge>:null}</div><p className="mt-1 text-sm text-tinta-suave">{r.body}</p><p className="mt-2 text-xs text-tinta-suave">{dateLabel(r.created_at)}</p></div></div><div className="mt-3 flex gap-3">{r.url?<Link href={r.url} className="text-sm font-semibold text-anil-600">Abrir →</Link>:null}{!r.read_at?<form action={markNotificationRead}><input type="hidden" name="id" value={r.id}/><button className="text-xs font-semibold text-tinta-suave underline">Marcar leída</button></form>:null}</div></Card>)}</div></div>}

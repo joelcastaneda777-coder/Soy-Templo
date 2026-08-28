@@ -6,135 +6,18 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHero } from "@/components/layout/page-hero";
-import { addAssignedCareNote, updateAssignedCareStatus } from "./actions";
-
-export const metadata: Metadata = { title: "Equipo de cuidado" };
-
-type CareRequest = {
-  id: string;
-  request_type: string;
-  requester_name: string;
-  contact_phone: string | null;
-  contact_email: string | null;
-  preferred_contact: string;
-  message: string;
-  priority: string;
-  status: string;
-  subject_name: string | null;
-  hospital_name: string | null;
-  room_details: string | null;
-  address: string | null;
-  municipality: string | null;
-  location_notes: string | null;
-  preferred_schedule: string | null;
-  created_at: string;
-};
-
-type Note = { id: string; request_id: string; note: string; created_at: string };
-
-const typeLabels: Record<string, string> = {
-  counseling: "Consejería pastoral",
-  hospital_visit: "Visitación hospitalaria",
-  home_visit: "Plantadores · visita en casa",
-};
-const statusLabels: Record<string, string> = {
-  new: "Nueva", reviewing: "En revisión", assigned: "Asignada", contacted: "Contacto iniciado",
-  scheduled: "Programada", completed: "Completada", closed: "Cerrada",
-};
-
-function dateLabel(value: string) {
-  return new Intl.DateTimeFormat("es-SV", { dateStyle: "medium", timeStyle: "short", timeZone: "America/El_Salvador" }).format(new Date(value));
-}
-
-export default async function CareWorkerPage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/auth/login?next=/cuidado");
-
-  const [{ data: member }, { data: roles }] = await Promise.all([
-    supabase.from("care_team_members").select("active,can_triage,can_counseling,can_hospital_visit,can_home_visit").eq("user_id", user.id).maybeSingle(),
-    supabase.from("user_roles").select("role").eq("user_id", user.id),
-  ]);
-  const isAdmin = (roles ?? []).some((row) => row.role === "admin" || row.role === "superadmin");
-  if (!isAdmin && !member?.active) redirect("/");
-  const canTriage = isAdmin || Boolean(member?.can_triage);
-
-  let requests: CareRequest[] = [];
-  if (canTriage) {
-    const { data } = await supabase.from("care_requests").select("*").is("deleted_at", null).not("status", "in", "(completed,closed)").order("created_at", { ascending: true });
-    requests = (data ?? []) as CareRequest[];
-  } else {
-    const { data: assignments } = await supabase.from("care_assignments").select("request_id").eq("user_id", user.id);
-    const ids = (assignments ?? []).map((row) => row.request_id);
-    if (ids.length) {
-      const { data } = await supabase.from("care_requests").select("*").in("id", ids).is("deleted_at", null).order("created_at", { ascending: true });
-      requests = (data ?? []) as CareRequest[];
-    }
-  }
-
-  const requestIds = requests.map((request) => request.id);
-  let notes: Note[] = [];
-  if (requestIds.length) {
-    const { data } = await supabase.from("care_request_notes").select("id,request_id,note,created_at").in("request_id", requestIds).order("created_at", { ascending: false });
-    notes = (data ?? []) as Note[];
-  }
-
-  return (
-    <div className="space-y-7">
-      <PageHero title="Equipo de cuidado" subtitle="Casos de acompañamiento asignados a Plantadores, Visitación y Consejería." />
-      <div className="mx-auto max-w-4xl space-y-6">
-        <div className="rounded-[var(--radius-card)] border border-cirio-200 bg-cirio-50 p-4 text-xs leading-relaxed text-tinta-suave">
-          <strong className="text-tinta">Información confidencial.</strong> Úsala únicamente para coordinar y realizar el acompañamiento asignado. No compartas nombres, teléfonos, hospitales, domicilios o relatos fuera del equipo autorizado.
-        </div>
-
-        {isAdmin ? <Link href="/admin/cuidado" className="inline-block text-sm font-semibold text-anil-600">Abrir triage administrativo →</Link> : null}
-
-        {!requests.length ? <EmptyState title="No tienes casos asignados en este momento." /> : null}
-
-        {requests.map((request) => {
-          const requestNotes = notes.filter((note) => note.request_id === request.id);
-          return (
-            <Card key={request.id} className={request.priority === "urgent" ? "border-cirio-400" : ""}>
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge tone="anil">{typeLabels[request.request_type] ?? request.request_type}</Badge>
-                <Badge>{statusLabels[request.status] ?? request.status}</Badge>
-                {request.priority === "urgent" ? <Badge tone="cirio">Urgente</Badge> : null}
-              </div>
-
-              <div className="mt-4 space-y-3">
-                <div><h2 className="font-display text-xl font-semibold text-anil-800">{request.requester_name}</h2><p className="text-xs text-tinta-suave">Recibida {dateLabel(request.created_at)}</p></div>
-                <p className="whitespace-pre-wrap text-sm leading-relaxed">{request.message}</p>
-                <div className="rounded-2xl bg-manta/50 p-4 text-sm leading-relaxed">
-                  <p><strong>Contacto:</strong> {request.contact_phone || request.contact_email}</p>
-                  <p><strong>Preferencia:</strong> {request.preferred_contact}</p>
-                  {request.preferred_schedule ? <p><strong>Horario sugerido:</strong> {request.preferred_schedule}</p> : null}
-                  {request.request_type === "hospital_visit" ? <><p className="mt-2"><strong>Persona:</strong> {request.subject_name}</p><p><strong>Hospital:</strong> {request.hospital_name}</p>{request.room_details ? <p><strong>Sala / habitación:</strong> {request.room_details}</p> : null}</> : null}
-                  {request.request_type === "home_visit" ? <><p className="mt-2"><strong>Dirección:</strong> {request.address}</p>{request.municipality ? <p><strong>Municipio / distrito:</strong> {request.municipality}</p> : null}</> : null}
-                  {request.location_notes ? <p><strong>Indicaciones:</strong> {request.location_notes}</p> : null}
-                </div>
-              </div>
-
-              {! ["completed", "closed"].includes(request.status) ? (
-                <form action={updateAssignedCareStatus} className="mt-4 flex flex-wrap gap-2">
-                  <input type="hidden" name="requestId" value={request.id} />
-                  <select name="status" defaultValue={request.status === "scheduled" ? "scheduled" : request.status === "contacted" ? "contacted" : "contacted"} className="min-h-10 flex-1 rounded-xl border border-manta bg-white px-3 text-sm">
-                    <option value="contacted">Ya hice contacto</option>
-                    <option value="scheduled">Quedó programado</option>
-                    <option value="completed">Acompañamiento realizado</option>
-                  </select>
-                  <button className="rounded-full bg-anil-600 px-4 text-sm font-semibold text-white">Actualizar</button>
-                </form>
-              ) : null}
-
-              <div className="mt-4 border-t border-manta pt-4">
-                <p className="text-xs font-semibold uppercase tracking-wider text-tinta-suave">Seguimiento interno</p>
-                {requestNotes.length ? <div className="mt-2 space-y-2">{requestNotes.slice(0, 5).map((note) => <div key={note.id} className="rounded-xl bg-manta/40 p-3 text-xs"><p>{note.note}</p><p className="mt-1 text-tinta-suave">{dateLabel(note.created_at)}</p></div>)}</div> : null}
-                <form action={addAssignedCareNote} className="mt-3 flex gap-2"><input type="hidden" name="requestId" value={request.id} /><input name="note" required minLength={2} maxLength={3000} placeholder="Nota breve de seguimiento" className="min-h-10 flex-1 rounded-xl border border-manta bg-white px-3 text-sm" /><button className="rounded-full border border-manta px-4 text-xs font-semibold">Guardar nota</button></form>
-              </div>
-            </Card>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
+import { addAssignedCareNote, assignCareRequestAsLeader, moderateCarePrayer, unassignCareRequestAsLeader, updateAssignedCareStatus } from "./actions";
+export const metadata:Metadata={title:"Equipo de cuidado"};
+type Member={user_id:string;ministry_title:string|null;active:boolean;is_supervisor:boolean;can_triage:boolean;can_assign:boolean;can_prayer_followup:boolean;can_counseling:boolean;can_hospital_visit:boolean;can_home_visit:boolean;lead_prayer:boolean;lead_counseling:boolean;lead_hospital_visit:boolean;lead_home_visit:boolean};
+type Request={id:string;request_type:string;requester_name:string;contact_phone:string|null;contact_email:string|null;preferred_contact:string;message:string;priority:string;status:string;subject_name:string|null;hospital_name:string|null;room_details:string|null;address:string|null;municipality:string|null;location_notes:string|null;preferred_schedule:string|null;created_at:string};
+type Assignment={request_id:string;user_id:string}; type Note={id:string;request_id:string;note:string;created_at:string}; type Prayer={id:string;body:string;category:string;is_public:boolean;status:string;created_at:string};
+const labels:Record<string,string>={counseling:"Consejería pastoral",hospital_visit:"Visitación hospitalaria",home_visit:"Plantadores · visita en casa"};
+const statusLabels:Record<string,string>={new:"Nueva",reviewing:"En revisión",assigned:"Asignada",contacted:"Contacto iniciado",scheduled:"Programada",completed:"Completada",closed:"Cerrada"};
+function dateLabel(v:string){return new Intl.DateTimeFormat("es-SV",{dateStyle:"medium",timeStyle:"short",timeZone:"America/El_Salvador"}).format(new Date(v));}
+function canHandle(m:Member,t:string){if(!m.active)return false;if(t==="counseling")return m.can_counseling;if(t==="hospital_visit")return m.can_hospital_visit;if(t==="home_visit")return m.can_home_visit;return false;}
+export default async function CarePage(){const supabase=await createClient();const {data:{user}}=await supabase.auth.getUser();if(!user)redirect("/auth/login?next=/cuidado");const [{data:member},{data:roles}]=await Promise.all([supabase.from("care_team_members").select("*").eq("user_id",user.id).maybeSingle(),supabase.from("user_roles").select("role").eq("user_id",user.id)]);const isAdmin=(roles??[]).some((r)=>r.role==="admin"||r.role==="superadmin");if(!isAdmin&&!member?.active)redirect("/");
+const canPrayer=isAdmin||Boolean(member?.is_supervisor||member?.can_triage||member?.lead_prayer||member?.can_prayer_followup);const canAssign=isAdmin||Boolean(member?.can_assign);const [requestResult,teamResult,assignmentResult,profileResult,prayerResult]=await Promise.all([supabase.from("care_requests").select("*").is("deleted_at",null).not("status","in","(completed,closed)").order("created_at",{ascending:true}),supabase.from("care_team_members").select("user_id,ministry_title,active,is_supervisor,can_triage,can_assign,can_prayer_followup,can_counseling,can_hospital_visit,can_home_visit,lead_prayer,lead_counseling,lead_hospital_visit,lead_home_visit").eq("active",true),supabase.from("care_assignments").select("request_id,user_id"),supabase.from("profiles").select("id,full_name"),canPrayer?supabase.from("prayer_requests").select("id,body,category,is_public,status,created_at").is("deleted_at",null).order("created_at",{ascending:false}).limit(30):Promise.resolve({data:[]})]);const requests=(requestResult.data??[]) as Request[];const team=(teamResult.data??[]) as Member[];const assignments=(assignmentResult.data??[]) as Assignment[];const names=new Map((profileResult.data??[]).map((p)=>[p.id,p.full_name]));const ids=requests.map(r=>r.id);let notes:Note[]=[];if(ids.length){const {data}=await supabase.from("care_request_notes").select("id,request_id,note,created_at").in("request_id",ids).order("created_at",{ascending:false});notes=(data??[]) as Note[];}const prayers=(prayerResult.data??[]) as Prayer[];
+return <div className="space-y-7"><PageHero title="Equipo de cuidado" subtitle="Supervisión pastoral, líderes por área y casos asignados."/><div className="mx-auto max-w-5xl space-y-6"><div className="rounded-[var(--radius-card)] border border-cirio-200 bg-cirio-50 p-4 text-xs leading-relaxed text-tinta-suave"><strong className="text-tinta">Información confidencial.</strong> Úsala únicamente para el acompañamiento pastoral autorizado.</div><div className="flex flex-wrap gap-4 text-sm font-semibold"><Link href="/notificaciones" className="text-anil-600">Centro de notificaciones →</Link>{isAdmin?<><Link href="/admin/cuidado" className="text-anil-600">Triage administrativo →</Link><Link href="/admin/cuidado/equipo" className="text-balsamo-700">Configurar equipo →</Link></>:null}</div>
+{!requests.length?<EmptyState title="No tienes casos pendientes en este momento."/>:null}{requests.map((r)=>{const ra=assignments.filter(a=>a.request_id===r.id);const rn=notes.filter(n=>n.request_id===r.id);const eligible=team.filter(m=>canHandle(m,r.request_type));return <Card key={r.id} className={r.priority==="urgent"?"border-cirio-400":""}><div className="flex flex-wrap gap-2"><Badge tone="anil">{labels[r.request_type]??r.request_type}</Badge><Badge>{statusLabels[r.status]??r.status}</Badge>{r.priority==="urgent"?<Badge tone="cirio">Urgente</Badge>:null}</div><h2 className="mt-4 font-display text-xl font-semibold text-anil-800">{r.requester_name}</h2><p className="text-xs text-tinta-suave">Recibida {dateLabel(r.created_at)}</p><p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed">{r.message}</p><div className="mt-3 rounded-2xl bg-manta/50 p-4 text-sm"><p><strong>Contacto:</strong> {r.contact_phone||r.contact_email}</p>{r.preferred_schedule?<p><strong>Horario:</strong> {r.preferred_schedule}</p>:null}{r.request_type==="hospital_visit"?<><p><strong>Persona:</strong> {r.subject_name}</p><p><strong>Hospital:</strong> {r.hospital_name}</p>{r.room_details?<p><strong>Sala / habitación:</strong> {r.room_details}</p>:null}</>:null}{r.request_type==="home_visit"?<><p><strong>Dirección:</strong> {r.address}</p>{r.municipality?<p><strong>Municipio:</strong> {r.municipality}</p>:null}</>:null}{r.location_notes?<p><strong>Indicaciones:</strong> {r.location_notes}</p>:null}</div>
+<div className="mt-4 grid gap-4 lg:grid-cols-2"><div><p className="text-xs font-semibold uppercase text-tinta-suave">Asignado a</p>{ra.length?<div className="mt-2 space-y-1">{ra.map(a=><div key={a.user_id} className="flex justify-between text-sm"><span>{names.get(a.user_id)||"Miembro del equipo"}</span>{canAssign?<form action={unassignCareRequestAsLeader}><input type="hidden" name="requestId" value={r.id}/><input type="hidden" name="userId" value={a.user_id}/><button className="text-xs text-error">Quitar</button></form>:null}</div>)}</div>:<p className="mt-2 text-xs text-tinta-suave">Sin asignar.</p>}{canAssign&&eligible.length?<form action={assignCareRequestAsLeader} className="mt-3 flex gap-2"><input type="hidden" name="requestId" value={r.id}/><select name="userId" required defaultValue="" className="min-h-10 flex-1 rounded-xl border border-manta bg-white px-3 text-sm"><option value="" disabled>Asignar a…</option>{eligible.map(m=><option key={m.user_id} value={m.user_id}>{names.get(m.user_id)||m.ministry_title||"Miembro"}</option>)}</select><button className="rounded-full border border-anil-300 px-3 text-xs font-semibold">Asignar</button></form>:null}</div><form action={updateAssignedCareStatus} className="flex gap-2 self-start"><input type="hidden" name="requestId" value={r.id}/><select name="status" defaultValue={r.status==="scheduled"?"scheduled":r.status==="contacted"?"contacted":"contacted"} className="min-h-10 flex-1 rounded-xl border border-manta bg-white px-3 text-sm"><option value="contacted">Ya hice contacto</option><option value="scheduled">Quedó programado</option><option value="completed">Acompañamiento realizado</option></select><button className="rounded-full bg-anil-600 px-4 text-sm font-semibold text-white">Actualizar</button></form></div><div className="mt-4 border-t border-manta pt-4"><p className="text-xs font-semibold uppercase text-tinta-suave">Seguimiento interno</p>{rn.slice(0,5).map(n=><div key={n.id} className="mt-2 rounded-xl bg-manta/40 p-3 text-xs"><p>{n.note}</p><p className="mt-1 text-tinta-suave">{dateLabel(n.created_at)}</p></div>)}<form action={addAssignedCareNote} className="mt-3 flex gap-2"><input type="hidden" name="requestId" value={r.id}/><input name="note" required minLength={2} maxLength={3000} placeholder="Nota breve de seguimiento" className="min-h-10 flex-1 rounded-xl border border-manta bg-white px-3 text-sm"/><button className="rounded-full border border-manta px-4 text-xs font-semibold">Guardar</button></form></div></Card>})}
+{canPrayer?<section className="space-y-3"><h2 className="font-display text-2xl font-semibold text-anil-800">Oración y seguimiento</h2>{prayers.map(p=><Card key={p.id}><div className="flex gap-2"><Badge tone="anil">{p.category}</Badge><Badge>{p.status}</Badge>{p.is_public?<Badge>Solicita muro público</Badge>:<Badge>Privada</Badge>}</div><p className="mt-3 whitespace-pre-wrap text-sm">{p.body}</p><p className="mt-2 text-xs text-tinta-suave">{dateLabel(p.created_at)}</p><div className="mt-3 flex gap-2"><form action={moderateCarePrayer}><input type="hidden" name="prayerId" value={p.id}/><input type="hidden" name="status" value="approved"/><button className="rounded-full bg-anil-600 px-3 py-2 text-xs font-semibold text-white">Aprobar</button></form><form action={moderateCarePrayer}><input type="hidden" name="prayerId" value={p.id}/><input type="hidden" name="status" value="answered"/><button className="rounded-full bg-balsamo-600 px-3 py-2 text-xs font-semibold text-white">Respondida</button></form><form action={moderateCarePrayer}><input type="hidden" name="prayerId" value={p.id}/><input type="hidden" name="status" value="rejected"/><button className="rounded-full border border-manta px-3 py-2 text-xs font-semibold">No publicar</button></form></div></Card>)}</section>:null}</div></div>}
