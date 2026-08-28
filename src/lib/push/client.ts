@@ -5,6 +5,7 @@ export type PushPreferences = {
   notify_sermons: boolean;
   notify_campaigns: boolean;
   notify_prayer: boolean;
+  notify_announcements: boolean;
 };
 
 export const defaultPushPreferences: PushPreferences = {
@@ -14,6 +15,7 @@ export const defaultPushPreferences: PushPreferences = {
   notify_sermons: true,
   notify_campaigns: true,
   notify_prayer: true,
+  notify_announcements: true,
 };
 
 export type PushServerStatus = {
@@ -80,12 +82,7 @@ export async function syncPushSubscription(subscription: PushSubscription, prefe
     method: "POST",
     credentials: "same-origin",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      endpoint: json.endpoint,
-      keys: json.keys,
-      deviceName: getDeviceName(),
-      ...(preferences ? { preferences } : {}),
-    }),
+    body: JSON.stringify({ endpoint: json.endpoint, keys: json.keys, deviceName: getDeviceName(), ...(preferences ? { preferences } : {}) }),
   });
   if (!response.ok) {
     const body = await response.json().catch(() => null);
@@ -105,38 +102,22 @@ export async function loadPushPreferences(endpoint: string): Promise<PushPrefere
 export async function ensurePushSubscription(publicKey: string, preferences: PushPreferences) {
   const registration = await registerPushWorker();
   let subscription = await registration.pushManager.getSubscription();
-
   if (subscription && !hasSameApplicationKey(subscription, publicKey)) {
     try {
-      await fetch("/api/push/unsubscribe", {
-        method: "POST",
-        credentials: "same-origin",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ endpoint: subscription.endpoint }),
-      });
+      await fetch("/api/push/unsubscribe", { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ endpoint: subscription.endpoint }) });
     } catch { /* La rotación del navegador puede continuar. */ }
     await subscription.unsubscribe();
     subscription = null;
   }
-
   if (!subscription) {
-    subscription = await registration.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(publicKey),
-    });
+    subscription = await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(publicKey) });
   }
-
   await syncPushSubscription(subscription, preferences);
   return subscription;
 }
 
 export async function disablePushSubscription(subscription: PushSubscription) {
-  const response = await fetch("/api/push/unsubscribe", {
-    method: "POST",
-    credentials: "same-origin",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ endpoint: subscription.endpoint }),
-  });
+  const response = await fetch("/api/push/unsubscribe", { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ endpoint: subscription.endpoint }) });
   if (!response.ok) throw new Error("No se pudo desvincular este dispositivo.");
   await subscription.unsubscribe();
 }
