@@ -23,6 +23,7 @@ export default async function AnnouncementsPage({ searchParams }: { searchParams
 
   const monthStart = new Date(Date.UTC(year, month - 1, 1, 6, 0, 0)).toISOString();
   const monthEnd = new Date(Date.UTC(year, month, 1, 6, 0, 0)).toISOString();
+  const now = new Date().toISOString();
   const supabase = await createClient();
 
   const { data } = await supabase
@@ -30,8 +31,9 @@ export default async function AnnouncementsPage({ searchParams }: { searchParams
     .select("id,title,description,category,announcement_kind,image_url,action_label,action_url,is_featured,effective_at,effective_until,publish_at,status,deleted_at")
     .eq("status", "published")
     .is("deleted_at", null)
+    .lte("publish_at", now)
+    .gte("effective_at", monthStart)
     .lt("effective_at", monthEnd)
-    .or(`effective_until.is.null,effective_until.gte.${monthStart}`)
     .order("is_featured", { ascending: false })
     .order("effective_at", { ascending: false });
 
