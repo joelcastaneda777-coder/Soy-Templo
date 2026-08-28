@@ -1,95 +1,50 @@
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { EmptyState } from "@/components/ui/empty-state";
-import { PageHero } from "@/components/layout/page-hero";
-import { t } from "@/lib/i18n/es";
-import { formatDate, formatTime } from "@/lib/utils";
+import { monthRange, todayInElSalvador } from "@/lib/events/calendar";
+import { EventsCalendar, type AgendaAnnouncement, type CalendarEvent } from "./events-calendar";
 
-export const metadata: Metadata = { title: "Eventos" };
-export const revalidate = 300;
+export const metadata: Metadata = { title: "Eventos y agenda" };
+export const dynamic = "force-dynamic";
 
-export default async function EventsPage() {
-  const supabase = await createClient();
-  const { data: events } = await supabase
-    .from("events")
-    .select("id, slug, name, description, starts_at, ends_at, location, map_url, ministries(name)")
-    .eq("status", "published")
-    .gte("starts_at", new Date().toISOString())
-    .order("starts_at", { ascending: true });
-
-  return (
-    <div className="space-y-5">
-      <PageHero title={t.events.upcoming} />
-      {events?.length ? (
-        <ul className="space-y-4">
-          {events.map((event, i) => (
-            <li key={event.id} className="stagger-item" style={{ animationDelay: `${i * 40}ms` }}>
-              <Card>
-                <div className="flex items-start gap-4">
-                  <div className="rounded-2xl bg-anil-600 px-4 py-2 text-center text-white" aria-hidden>
-                    <span className="block font-display text-2xl font-bold">
-                      {new Date(event.starts_at).getDate()}
-                    </span>
-                    <span className="block text-xs uppercase">
-                      {new Intl.DateTimeFormat("es-SV", { month: "short" }).format(new Date(event.starts_at))}
-                    </span>
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <h2 className="font-display text-xl font-semibold">{event.name}</h2>
-                    <p className="text-sm text-tinta-suave">
-                      {formatDate(event.starts_at)} · {formatTime(event.starts_at)}
-                      {event.ends_at ? `–${formatTime(event.ends_at)}` : null}
-                    </p>
-                    {event.location ? (
-                      <p className="text-sm text-tinta-suave">
-                        {t.events.location}: {event.map_url
-                          ? <a className="text-anil-600 underline" href={event.map_url} target="_blank" rel="noopener noreferrer">{event.location}</a>
-                          : event.location}
-                      </p>
-                    ) : null}
-                    {(() => {
-                      // Sin tipos generados de Supabase, la relación puede inferirse
-                      // como arreglo aunque en tiempo de ejecución sea un solo objeto.
-                      const ministry = Array.isArray(event.ministries)
-                        ? event.ministries[0]
-                        : event.ministries;
-                      return ministry ? (
-                        <Badge tone="balsamo" className="mt-2">{ministry.name}</Badge>
-                      ) : null;
-                    })()}
-                    {event.description ? <p className="mt-2 text-sm">{event.description}</p> : null}
-                    <a
-                      className="mt-3 inline-block text-sm font-semibold text-anil-600"
-                      href={icsHref(event.name, event.starts_at, event.ends_at, event.location)}
-                      download={`${event.slug}.ics`}
-                    >
-                      {t.events.addToCalendar} ↓
-                    </a>
-                  </div>
-                </div>
-              </Card>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <EmptyState title={t.events.empty} />
-      )}
-    </div>
-  );
+function one<T>(value: T | T[] | null | undefined): T | null {
+  return Array.isArray(value) ? value[0] ?? null : value ?? null;
 }
 
-/** Genera un archivo .ics en un data URI: funciona sin backend y dentro de Capacitor. */
-function icsHref(name: string, start: string, end: string | null, location: string | null) {
-  const fmt = (iso: string) => iso.replace(/[-:]/g, "").replace(/\.\d{3}/, "");
-  const ics = [
-    "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Soy Templo//ES", "BEGIN:VEVENT",
-    `DTSTART:${fmt(start)}`,
-    end ? `DTEND:${fmt(end)}` : "",
-    `SUMMARY:${name}`,
-    location ? `LOCATION:${location}` : "",
-    "END:VEVENT", "END:VCALENDAR",
-  ].filter(Boolean).join("\r\n");
-  return `data:text/calendar;charset=utf-8,${encodeURIComponent(ics)}`;
+export default async function EventsPage({ searchParams }: { searchParams: Promise<{ month?: string; date?: string }> }) {
+  const params = await searchParams;
+  const today = todayInElSalvador();
+  const requestedMonth = params.month && /^\d{4}-\d{2}$/.test(params.month) ? params.month : today.slice(0, 7);
+  const selectedDate = params.date && params.date.startsWith(`${requestedMonth}-`) ? params.date : (today.startsWith(requestedMonth) ? today : `${requestedMonth}-01`);
+  const range = monthRange(requestedMonth);
+  const supabase = await createClient();
+  const now = new Date().toISOString();
+
+  const [{ data: rows }, { data: announcementRows }] = await Promise.all([
+    supabase.from("events")
+      .select("id,slug,name,description,starts_at,ends_at,location,map_url,image_url,capacity,registered_count,attendance_mode,is_featured,category:event_categories(slug,name,color_hex),ministry:ministries(name)")
+      .eq("status", "published").is("deleted_at", null).gte("starts_at", range.start).lt("starts_at", range.end).order("starts_at", { ascending: true }),
+    supabase.from("announcements")
+      .select("id,title,description,category,image_url,action_label,action_url,priority,is_featured,publish_at")
+      .eq("status", "published").eq("display_on_agenda", true).is("deleted_at", null).lte("publish_at", now)
+      .or(`expires_at.is.null,expires_at.gte.${now}`).order("is_featured", { ascending: false }).order("priority", { ascending: false }).limit(8),
+  ]);
+
+  const events: CalendarEvent[] = (rows ?? []).map((row) => {
+    const category = one(row.category as { slug: string; name: string; color_hex: string } | { slug: string; name: string; color_hex: string }[] | null);
+    const ministry = one(row.ministry as { name: string } | { name: string }[] | null);
+    return {
+      id: row.id, slug: row.slug, name: row.name, description: row.description, startsAt: row.starts_at, endsAt: row.ends_at,
+      location: row.location, imageUrl: row.image_url, capacity: row.capacity, registeredCount: row.registered_count ?? 0,
+      attendanceMode: row.attendance_mode ?? "none", featured: row.is_featured ?? false,
+      category: category ? { slug: category.slug, name: category.name, colorHex: category.color_hex } : { slug: "general", name: "General", colorHex: "#5B5FEF" },
+      ministryName: ministry?.name ?? null,
+    };
+  });
+
+  const announcements: AgendaAnnouncement[] = (announcementRows ?? []).map((a) => ({
+    id: a.id, title: a.title, description: a.description, category: a.category, imageUrl: a.image_url,
+    actionLabel: a.action_label, actionUrl: a.action_url, featured: a.is_featured ?? false,
+  }));
+
+  return <EventsCalendar month={requestedMonth} initialSelectedDate={selectedDate} today={today} events={events} announcements={announcements} />;
 }
