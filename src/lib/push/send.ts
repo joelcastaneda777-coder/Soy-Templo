@@ -5,6 +5,7 @@ type PushCategory = "devotional" | "verse" | "events" | "sermons" | "campaigns" 
 const categoryColumn: Record<PushCategory, string> = { devotional: "notify_devotional", verse: "notify_verse", events: "notify_events", sermons: "notify_sermons", campaigns: "notify_campaigns", prayer: "notify_prayer" };
 
 type PushConfig = { publicKey: string; privateKey: string };
+type VaultPushConfigRow = { public_key: string | null; private_key: string | null };
 let cachedVaultConfig: PushConfig | null | undefined;
 let cachedAt = 0;
 
@@ -24,11 +25,12 @@ export async function getPushConfig(): Promise<PushConfig | null> {
   const service = getServiceClient();
   if (!service) return null;
 
-  const { data, error } = await service.rpc("get_push_vapid_config").maybeSingle();
-  if (error || !data?.public_key || !data?.private_key) {
+  const result = await service.rpc("get_push_vapid_config").maybeSingle();
+  const data = result.data as VaultPushConfigRow | null;
+  if (result.error || !data?.public_key || !data.private_key) {
     cachedVaultConfig = null;
   } else {
-    cachedVaultConfig = { publicKey: data.public_key as string, privateKey: data.private_key as string };
+    cachedVaultConfig = { publicKey: data.public_key, privateKey: data.private_key };
   }
   cachedAt = Date.now();
   return cachedVaultConfig;
