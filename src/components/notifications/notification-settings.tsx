@@ -1,206 +1,105 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { t } from "@/lib/i18n/es";
+import { defaultPushPreferences, disablePushSubscription, ensurePushSubscription, getPushServerStatus, isIos, isStandalonePwa, loadPushPreferences, registerPushWorker, supportsWebPush, syncPushSubscription, type PushPreferences, type PushServerStatus } from "@/lib/push/client";
 
-const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-
-type Prefs = {
-  notify_devotional: boolean;
-  notify_verse: boolean;
-  notify_events: boolean;
-  notify_sermons: boolean;
-  notify_campaigns: boolean;
-  notify_prayer: boolean;
-};
-
-const defaultPrefs: Prefs = {
-  notify_devotional: true,
-  notify_verse: true,
-  notify_events: true,
-  notify_sermons: true,
-  notify_campaigns: true,
-  notify_prayer: true,
-};
-
-const categoryLabels: { key: keyof Prefs; label: string }[] = [
+const categoryLabels: { key: keyof PushPreferences; label: string }[] = [
   { key: "notify_devotional", label: t.notifications.categories.devotional },
   { key: "notify_verse", label: t.notifications.categories.verse },
   { key: "notify_events", label: t.notifications.categories.events },
   { key: "notify_sermons", label: t.notifications.categories.sermons },
   { key: "notify_prayer", label: "Oraciones de la comunidad" },
+  { key: "notify_announcements", label: "Anuncios importantes" },
   { key: "notify_campaigns", label: t.notifications.categories.campaigns },
 ];
 
-function urlBase64ToUint8Array(base64String: string) {
-  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
-  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
-  const rawData = atob(base64);
-  return Uint8Array.from([...rawData].map((c) => c.charCodeAt(0)));
-}
-
-function isIos() {
-  if (typeof navigator === "undefined") return false;
-  return /iphone|ipad|ipod/i.test(navigator.userAgent);
-}
-
-function isStandalonePwa() {
-  if (typeof window === "undefined") return false;
-  return window.matchMedia("(display-mode: standalone)").matches || (navigator as unknown as { standalone?: boolean }).standalone === true;
-}
-
 export function NotificationSettings() {
   const [supported, setSupported] = useState(true);
+  const [checking, setChecking] = useState(true);
   const [permission, setPermission] = useState<NotificationPermission>("default");
   const [subscribed, setSubscribed] = useState(false);
-  const [prefs, setPrefs] = useState<Prefs>(defaultPrefs);
+  const [prefs, setPrefs] = useState<PushPreferences>(defaultPushPreferences);
+  const [server, setServer] = useState<PushServerStatus | null>(null);
+  const [endpoint, setEndpoint] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [endpoint, setEndpoint] = useState<string | null>(null);
+
+  async function refreshServerStatus() { const status = await getPushServerStatus(); setServer(status); return status; }
 
   useEffect(() => {
-    const supportsPush = "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
-    setSupported(supportsPush);
-    if (!supportsPush) return;
-
-    setPermission(Notification.permission);
-
-    navigator.serviceWorker.register("/sw.js").then(async (registration) => {
-      const existing = await registration.pushManager.getSubscription();
-      if (!existing) return;
-
-      setSubscribed(true);
-      setEndpoint(existing.endpoint);
-
+    let cancelled = false;
+    async function inspect() {
+      const pushSupported = supportsWebPush();
+      if (!cancelled) setSupported(pushSupported);
+      if (!pushSupported) { if (!cancelled) setChecking(false); return; }
+      if (!cancelled) setPermission(Notification.permission);
       try {
-        const res = await fetch(`/api/push/preferences?endpoint=${encodeURIComponent(existing.endpoint)}`, { cache: "no-store" });
-        if (!res.ok) return;
-        const data = await res.json();
-        if (data?.preferences) setPrefs({ ...defaultPrefs, ...data.preferences });
-      } catch {
-        // Mantener defaults si el dispositivo está offline o aún no está vinculado a la cuenta.
-      }
-    });
+        const status = await getPushServerStatus();
+        if (cancelled) return;
+        setServer(status);
+        const registration = await registerPushWorker();
+        const existing = await registration.pushManager.getSubscription();
+        if (existing && status.authenticated && status.configured) {
+          await syncPushSubscription(existing);
+          if (cancelled) return;
+          setSubscribed(true); setEndpoint(existing.endpoint);
+          const loaded = await loadPushPreferences(existing.endpoint);
+          if (loaded && !cancelled) setPrefs(loaded);
+          const updated = await getPushServerStatus();
+          if (!cancelled) setServer(updated);
+        }
+      } catch (err) { if (!cancelled) setError(err instanceof Error ? err.message : t.notifications.error); }
+      finally { if (!cancelled) setChecking(false); }
+    }
+    void inspect(); return () => { cancelled = true; };
   }, []);
 
   async function enable() {
-    setPending(true);
-    setError(null);
+    if (!server?.authenticated || !server.configured || !server.publicKey) return;
+    setPending(true); setError(null);
     try {
-      if (!VAPID_PUBLIC_KEY) {
-        setError("Falta configurar la clave de notificaciones en el servidor (NEXT_PUBLIC_VAPID_PUBLIC_KEY).");
-        setPending(false);
-        return;
-      }
-
-      const permissionResult = await Notification.requestPermission();
-      setPermission(permissionResult);
-      if (permissionResult !== "granted") {
-        setPending(false);
-        return;
-      }
-
-      const registration = await navigator.serviceWorker.register("/sw.js");
-      await navigator.serviceWorker.ready;
-
-      let subscription = await registration.pushManager.getSubscription();
-      if (!subscription) {
-        subscription = await registration.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
-        });
-      }
-
-      const json = subscription.toJSON();
-      const res = await fetch("/api/push/subscribe", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ endpoint: json.endpoint, keys: json.keys, preferences: prefs }),
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => null);
-        throw new Error(data?.error || "subscribe-failed");
-      }
-
-      setSubscribed(true);
-      setEndpoint(subscription.endpoint);
-    } catch (err) {
-      setError(err instanceof Error && err.message && !err.message.includes("subscribe-failed") ? err.message : t.notifications.error);
-    } finally {
-      setPending(false);
-    }
+      const result = await Notification.requestPermission(); setPermission(result);
+      if (result !== "granted") return;
+      const subscription = await ensurePushSubscription(server.publicKey, prefs);
+      setSubscribed(true); setEndpoint(subscription.endpoint); await refreshServerStatus();
+    } catch (err) { setError(err instanceof Error ? err.message : t.notifications.error); }
+    finally { setPending(false); }
   }
 
   async function disable() {
-    setPending(true);
-    setError(null);
+    setPending(true); setError(null);
     try {
       const registration = await navigator.serviceWorker.getRegistration();
       const subscription = await registration?.pushManager.getSubscription();
-      if (subscription) {
-        await fetch("/api/push/unsubscribe", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ endpoint: subscription.endpoint }),
-        });
-        await subscription.unsubscribe();
-      }
-      setSubscribed(false);
-      setEndpoint(null);
-    } catch {
-      setError(t.notifications.error);
-    } finally {
-      setPending(false);
-    }
+      if (subscription) await disablePushSubscription(subscription);
+      setSubscribed(false); setEndpoint(null); await refreshServerStatus();
+    } catch (err) { setError(err instanceof Error ? err.message : t.notifications.error); }
+    finally { setPending(false); }
   }
 
-  function togglePref(key: keyof Prefs) {
-    const next = { ...prefs, [key]: !prefs[key] };
-    setPrefs(next);
-    if (endpoint) {
-      fetch("/api/push/preferences", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ endpoint, ...next }),
-      }).then((res) => {
-        if (!res.ok) setError(t.notifications.error);
-      }).catch(() => setError(t.notifications.error));
-    }
+  async function togglePref(key: keyof PushPreferences) {
+    const previous = prefs; const next = { ...prefs, [key]: !prefs[key] };
+    setPrefs(next); setError(null); if (!endpoint) return;
+    try {
+      const response = await fetch("/api/push/preferences", { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ endpoint, ...next }) });
+      if (!response.ok) throw new Error(t.notifications.error);
+    } catch { setPrefs(previous); setError(t.notifications.error); }
   }
 
+  if (checking) return <div className="rounded-[var(--radius-card)] border border-manta bg-white p-5 text-sm text-tinta-suave dark:bg-manta">Comprobando notificaciones…</div>;
   if (!supported) return <p className="text-sm text-tinta-suave">{t.notifications.unsupported}</p>;
 
-  return (
-    <div className="space-y-4 rounded-[var(--radius-card)] border border-manta bg-white p-5 dark:bg-manta">
-      <div>
-        <h2 className="font-display text-lg font-semibold">{t.notifications.title}</h2>
-        <p className="mt-1 text-sm text-tinta-suave">{t.notifications.intro}</p>
-      </div>
-
-      {isIos() && !isStandalonePwa() ? <p className="rounded-xl bg-cirio-100 p-3 text-sm text-anil-900">{t.notifications.iosHint}</p> : null}
-
-      {permission === "denied" ? (
-        <p className="text-sm text-error">{t.notifications.blocked}</p>
-      ) : (
-        <Button onClick={subscribed ? disable : enable} disabled={pending} variant={subscribed ? "ghost" : "primary"}>
-          {pending ? t.notifications.enabling : subscribed ? t.notifications.disable : t.notifications.enable}
-        </Button>
-      )}
-
-      {error ? <p role="alert" className="text-sm text-error">{error}</p> : null}
-
-      {subscribed ? (
-        <div className="space-y-2 border-t border-manta pt-4">
-          <p className="text-sm font-semibold text-anil-800">{t.notifications.enabled} ✓</p>
-          {categoryLabels.map(({ key, label }) => (
-            <label key={key} className="flex items-center gap-3 text-sm">
-              <input type="checkbox" checked={prefs[key]} onChange={() => togglePref(key)} className="h-5 w-5 accent-anil-600" />
-              {label}
-            </label>
-          ))}
-        </div>
-      ) : null}
-    </div>
-  );
+  return <div className="space-y-4 rounded-[var(--radius-card)] border border-manta bg-white p-5 dark:bg-manta">
+    <div><h2 className="font-display text-lg font-semibold">{t.notifications.title}</h2><p className="mt-1 text-sm text-tinta-suave">Recibe avisos directo en tus dispositivos vinculados a tu cuenta.</p></div>
+    {!server?.authenticated ? <div className="rounded-xl bg-anil-50 p-3 text-sm text-anil-900">Inicia sesión para vincular las notificaciones a tu cuenta. <Link href="/auth/login?next=/mas" className="font-semibold underline">Iniciar sesión</Link></div> : !server.configured ? <p className="rounded-xl bg-cirio-100 p-3 text-sm text-anil-900">Las notificaciones push todavía no están configuradas en el servidor. El centro de notificaciones dentro de Soy Templo seguirá funcionando.</p> : null}
+    {isIos() && !isStandalonePwa() ? <p className="rounded-xl bg-cirio-100 p-3 text-sm text-anil-900">{t.notifications.iosHint}</p> : null}
+    {permission === "denied" ? <p className="rounded-xl bg-cirio-100 p-3 text-sm text-error">Las notificaciones están bloqueadas en este dispositivo. En Android puedes habilitarlas desde Ajustes → Aplicaciones → tu navegador o Soy Templo → Notificaciones.</p> : null}
+    {server?.authenticated && server.configured && permission !== "denied" ? <Button onClick={subscribed ? disable : enable} disabled={pending} variant={subscribed ? "ghost" : "primary"}>{pending ? "Guardando…" : subscribed ? "Desactivar en este dispositivo" : "Activar notificaciones en este dispositivo"}</Button> : null}
+    {error ? <p role="alert" className="text-sm text-error">{error}</p> : null}
+    {server?.authenticated ? <p className="text-xs text-tinta-suave">{server.registeredDevices === 1 ? "1 dispositivo vinculado a tu cuenta." : `${server.registeredDevices} dispositivos vinculados a tu cuenta.`}</p> : null}
+    {subscribed ? <div className="space-y-2 border-t border-manta pt-4"><p className="text-sm font-semibold text-balsamo-800">Notificaciones activas en este dispositivo ✓</p>{categoryLabels.map(({ key, label }) => <label key={key} className="flex items-center gap-3 text-sm"><input type="checkbox" checked={prefs[key]} onChange={() => void togglePref(key)} className="h-5 w-5 accent-anil-600" />{label}</label>)}</div> : null}
+  </div>;
 }
