@@ -26,17 +26,54 @@ const planSchema = z.object({
   lessons: z.array(lessonSchema).min(1),
 });
 
+const visualSchema = z.object({
+  planId: z.string().uuid(),
+  visualTheme: z.enum(["faith", "fear", "hope", "sadness", "joy", "grace", "identity", "wisdom", "rest", "theology"]),
+  accentColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/),
+  coverImageUrl: z.string().max(500).optional(),
+});
+
 export type ImportPlansState = { ok?: boolean; imported?: number; error?: string };
+
+async function getAuthorizedClient() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { supabase, authorized: false };
+  const { data: isStaff } = await supabase.rpc("is_staff");
+  return { supabase, authorized: Boolean(isStaff) };
+}
+
+export async function updatePlanAppearance(formData: FormData) {
+  const parsed = visualSchema.safeParse({
+    planId: formData.get("planId"),
+    visualTheme: formData.get("visualTheme"),
+    accentColor: formData.get("accentColor"),
+    coverImageUrl: String(formData.get("coverImageUrl") ?? "").trim() || undefined,
+  });
+  if (!parsed.success) return;
+
+  const { supabase, authorized } = await getAuthorizedClient();
+  if (!authorized) return;
+
+  await supabase
+    .from("bible_plans")
+    .update({
+      visual_theme: parsed.data.visualTheme,
+      accent_color: parsed.data.accentColor.toUpperCase(),
+      cover_image_url: parsed.data.coverImageUrl ?? null,
+    })
+    .eq("id", parsed.data.planId);
+
+  revalidatePath("/admin/planes");
+  revalidatePath("/planes");
+}
 
 export async function importPlans(rows: ParsedPlan[]): Promise<ImportPlansState> {
   const parsed = z.array(planSchema).safeParse(rows);
   if (!parsed.success || parsed.data.length === 0) return { error: "No hay planes válidos para importar." };
 
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "Debes iniciar sesión." };
-  const { data: isStaff } = await supabase.rpc("is_staff");
-  if (!isStaff) return { error: "No tienes permiso para publicar planes." };
+  const { supabase, authorized } = await getAuthorizedClient();
+  if (!authorized) return { error: "No tienes permiso para publicar planes." };
 
   const { data: defaultAuthor } = await supabase
     .from("authors")
