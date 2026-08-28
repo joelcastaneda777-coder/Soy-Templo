@@ -3,6 +3,7 @@ import Image from "next/image";
 import { createClient } from "@/lib/supabase/server";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { WeeklyAnnouncementsCarousel, type WeeklyAnnouncement } from "@/components/home/weekly-announcements-carousel";
 import { t } from "@/lib/i18n/es";
 import { greetingByHour, formatDate, formatTime } from "@/lib/utils";
 
@@ -12,7 +13,7 @@ export default async function HomePage() {
   const supabase = await createClient();
   const now = new Date().toISOString();
 
-  const [devotionalRes, eventRes, announcementRes, radioRes] = await Promise.all([
+  const [devotionalRes, eventRes, announcementsRes, radioRes] = await Promise.all([
     supabase
       .from("devotionals")
       .select("slug, title, bible_reading, key_verse")
@@ -31,20 +32,29 @@ export default async function HomePage() {
       .maybeSingle(),
     supabase
       .from("announcements")
-      .select("id, title, description, action_label, action_url")
+      .select("id, title, description, category, action_label, action_url, image_url, is_featured")
       .eq("status", "published")
       .lte("publish_at", now)
       .or(`expires_at.is.null,expires_at.gte.${now}`)
+      .order("is_featured", { ascending: false })
       .order("priority", { ascending: false })
       .order("publish_at", { ascending: false })
-      .limit(1)
-      .maybeSingle(),
+      .limit(8),
     supabase.from("app_settings").select("value").eq("key", "radio").maybeSingle(),
   ]);
 
   const devotional = devotionalRes.data;
   const event = eventRes.data;
-  const announcement = announcementRes.data;
+  const announcements: WeeklyAnnouncement[] = (announcementsRes.data ?? []).map((announcement) => ({
+    id: announcement.id,
+    title: announcement.title,
+    description: announcement.description,
+    category: announcement.category,
+    actionLabel: announcement.action_label,
+    actionUrl: announcement.action_url,
+    imageUrl: announcement.image_url,
+    featured: announcement.is_featured,
+  }));
   const radio = (radioRes.data?.value as { name?: string; stream_url?: string | null } | null) ?? {};
   const radioName = radio.name || t.radio.title;
   const isRadioLive = !!radio.stream_url;
@@ -104,26 +114,17 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        {event ? (
-          <Card>
-            <Badge tone="balsamo">{t.home.nextEvent}</Badge>
-            <h2 className="mt-2 font-display text-xl font-semibold">{event.name}</h2>
-            <p className="mt-1 text-sm text-tinta-suave">{formatDate(event.starts_at)} · {formatTime(event.starts_at)}</p>
-            {event.location ? <p className="text-sm text-tinta-suave">{event.location}</p> : null}
-            <Link href="/eventos" className="mt-3 inline-block text-sm font-semibold text-anil-600">{t.events.upcoming} →</Link>
-          </Card>
-        ) : null}
+      {event ? (
+        <Card>
+          <Badge tone="balsamo">{t.home.nextEvent}</Badge>
+          <h2 className="mt-2 font-display text-xl font-semibold">{event.name}</h2>
+          <p className="mt-1 text-sm text-tinta-suave">{formatDate(event.starts_at)} · {formatTime(event.starts_at)}</p>
+          {event.location ? <p className="text-sm text-tinta-suave">{event.location}</p> : null}
+          <Link href="/eventos" className="mt-3 inline-block text-sm font-semibold text-anil-600">{t.events.upcoming} →</Link>
+        </Card>
+      ) : null}
 
-        {announcement ? (
-          <Card>
-            <Badge tone="cirio">{t.home.featuredAnnouncement}</Badge>
-            <h2 className="mt-2 font-display text-xl font-semibold">{announcement.title}</h2>
-            <p className="mt-1 line-clamp-3 text-sm text-tinta-suave">{announcement.description}</p>
-            <Link href="/anuncios" className="mt-3 inline-block text-sm font-semibold text-anil-600">{t.nav.announcements} →</Link>
-          </Card>
-        ) : null}
-      </div>
+      <WeeklyAnnouncementsCarousel items={announcements} />
     </div>
   );
 }
