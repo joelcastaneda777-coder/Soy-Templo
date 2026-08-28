@@ -8,6 +8,8 @@ export type ParsedPlanLesson = {
   prayer: string;
 };
 
+export type PlanThemeKey = "general" | "fe" | "miedo" | "esperanza" | "tristeza" | "gozo" | "identidad" | "gracia" | "sabiduria";
+
 export type ParsedPlan = {
   name: string;
   slug: string;
@@ -15,6 +17,8 @@ export type ParsedPlan = {
   durationDays: number;
   level: "beginner" | "intermediate" | "advanced";
   topic: string;
+  themeKey: PlanThemeKey;
+  coverUrl: string | null;
   accessTier: "free" | "plus";
   lessons: ParsedPlanLesson[];
 };
@@ -27,6 +31,19 @@ function slugify(input: string) {
 
 function join(lines: string[]) {
   return lines.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+}
+
+function normalizeTheme(value: string): PlanThemeKey {
+  const normalized = value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+  if (/miedo|ansiedad|temor/.test(normalized)) return "miedo";
+  if (/esperanza|confianza|descanso/.test(normalized)) return "esperanza";
+  if (/tristeza|dolor|duelo|sufrimiento/.test(normalized)) return "tristeza";
+  if (/gozo|alegria/.test(normalized)) return "gozo";
+  if (/identidad|espiritu/.test(normalized)) return "identidad";
+  if (/gracia|libertad/.test(normalized)) return "gracia";
+  if (/sabiduria|biblia|interpretacion|teologia/.test(normalized)) return "sabiduria";
+  if (/fe|discipulado|reino/.test(normalized)) return "fe";
+  return "general";
 }
 
 function parseLessonBody(body: string) {
@@ -53,13 +70,7 @@ function parseLessonBody(body: string) {
     else if (section === "prayer") prayerLines.push(line);
   }
 
-  return {
-    bibleReading,
-    explanation: join(explanationLines),
-    questions,
-    activity: join(activityLines),
-    prayer: join(prayerLines),
-  };
+  return { bibleReading, explanation: join(explanationLines), questions, activity: join(activityLines), prayer: join(prayerLines) };
 }
 
 export function parsePlansMarkdown(markdown: string): ParsePlansResult {
@@ -78,9 +89,13 @@ export function parsePlansMarkdown(markdown: string): ParsePlansResult {
     const durationRaw = body.match(/^\*\*Duración:\*\*\s*(\d+)/mi)?.[1];
     const levelRaw = body.match(/^\*\*Nivel:\*\*\s*(.+)$/mi)?.[1]?.trim().toLowerCase() ?? "principiante";
     const topic = body.match(/^\*\*Tema:\*\*\s*(.+)$/mi)?.[1]?.trim() ?? "Estudio bíblico";
+    const themeRaw = body.match(/^\*\*Enfoque:\*\*\s*(.+)$/mi)?.[1]?.trim() ?? topic;
+    const imageRaw = body.match(/^\*\*Imagen:\*\*\s*(.+)$/mi)?.[1]?.trim() ?? "";
+    const coverUrl = imageRaw && imageRaw.toLowerCase() !== "ninguna" ? imageRaw : null;
     const accessRaw = body.match(/^\*\*Acceso:\*\*\s*(.+)$/mi)?.[1]?.trim().toLowerCase() ?? "gratis";
     const accessTier = /plus|premium|soy\s*templo\+/.test(accessRaw) ? "plus" : "free";
     const level = levelRaw.startsWith("av") ? "advanced" : levelRaw.startsWith("inter") ? "intermediate" : "beginner";
+    const themeKey = normalizeTheme(themeRaw);
     const lessonChunks = body.split(/^## LECCIÓN\s+(\d+):\s*/mi).slice(1);
     const lessons: ParsedPlanLesson[] = [];
 
@@ -89,12 +104,10 @@ export function parsePlansMarkdown(markdown: string): ParsePlansResult {
       const lessonChunk = lessonChunks[i + 1] ?? "";
       const [lessonTitle = "", ...lessonRest] = lessonChunk.split("\n");
       const parsedLesson = parseLessonBody(lessonRest.join("\n"));
-
       if (!position || !lessonTitle.trim() || !parsedLesson.bibleReading || !parsedLesson.explanation) {
         issues.push(`${name}: la lección ${position || "?"} está incompleta.`);
         continue;
       }
-
       lessons.push({ position, title: lessonTitle.trim(), ...parsedLesson });
     }
 
@@ -108,7 +121,7 @@ export function parsePlansMarkdown(markdown: string): ParsePlansResult {
       continue;
     }
 
-    plans.push({ name, slug: slugify(name), description, durationDays, level, topic, accessTier, lessons });
+    plans.push({ name, slug: slugify(name), description, durationDays, level, topic, themeKey, coverUrl, accessTier, lessons });
   }
 
   if (planChunks.length === 0 && markdown.trim()) issues.push('No se encontró ningún encabezado con el formato "# PLAN: Nombre".');
