@@ -8,13 +8,26 @@ import { NotificationSettings } from "@/components/notifications/notification-se
 export default async function MorePage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  const [{ data: isStaff }, { data: careMembership }] = user
-    ? await Promise.all([
-        supabase.rpc("is_staff"),
-        supabase.from("care_team_members").select("active").eq("user_id", user.id).maybeSingle(),
-      ])
-    : [{ data: false }, { data: null }];
 
+  let isStaff = false;
+  let careMembership: { active: boolean } | null = null;
+  let roles: { role: string }[] = [];
+  let unreadCount = 0;
+
+  if (user) {
+    const [staffResult, careResult, roleResult, notificationResult] = await Promise.all([
+      supabase.rpc("is_staff"),
+      supabase.from("care_team_members").select("active").eq("user_id", user.id).maybeSingle(),
+      supabase.from("user_roles").select("role").eq("user_id", user.id),
+      supabase.from("user_notifications").select("id", { count: "exact", head: true }).eq("user_id", user.id).is("read_at", null),
+    ]);
+    isStaff = Boolean(staffResult.data);
+    careMembership = careResult.data as { active: boolean } | null;
+    roles = (roleResult.data ?? []) as { role: string }[];
+    unreadCount = notificationResult.count ?? 0;
+  }
+
+  const isCareAdmin = roles.some((row) => row.role === "admin" || row.role === "superadmin");
   const links = [
     { href: "/biblia", label: "Biblia" },
     { href: "/donar", label: t.nav.donate },
@@ -32,49 +45,18 @@ export default async function MorePage() {
   return (
     <div className="space-y-4">
       <PageHero title={t.nav.more} />
-
       <div className="mx-auto max-w-md space-y-4">
         <NotificationSettings />
-
         <nav aria-label="Más opciones">
           <ul className="divide-y divide-manta overflow-hidden rounded-[var(--radius-card)] border border-manta bg-white dark:bg-manta">
-            {isStaff ? (
-              <li>
-                <Link href="/admin" className="flex min-h-14 items-center px-5 font-semibold text-anil-600">
-                  {t.nav.admin} →
-                </Link>
-              </li>
-            ) : null}
-            {careMembership?.active ? (
-              <li>
-                <Link href="/cuidado" className="flex min-h-14 items-center px-5 font-semibold text-balsamo-700">
-                  Equipo de cuidado →
-                </Link>
-              </li>
-            ) : null}
-            {links.map((l) => (
-              <li key={l.href}>
-                <Link href={l.href} className="flex min-h-14 items-center px-5 font-medium hover:bg-anil-50">
-                  {l.label}
-                </Link>
-              </li>
-            ))}
+            {user ? <li><Link href="/notificaciones" className="flex min-h-14 items-center justify-between px-5 font-semibold text-anil-600"><span>Notificaciones</span>{unreadCount ? <span className="rounded-full bg-anil-600 px-2 py-0.5 text-xs text-white">{unreadCount}</span> : null}</Link></li> : null}
+            {isStaff ? <li><Link href="/admin" className="flex min-h-14 items-center px-5 font-semibold text-anil-600">{t.nav.admin} →</Link></li> : null}
+            {careMembership?.active ? <li><Link href="/cuidado" className="flex min-h-14 items-center px-5 font-semibold text-balsamo-700">Equipo de cuidado →</Link></li> : null}
+            {isCareAdmin ? <li><Link href="/admin/cuidado/equipo" className="flex min-h-14 items-center px-5 font-semibold text-balsamo-700">Configurar equipo pastoral →</Link></li> : null}
+            {links.map((l) => <li key={l.href}><Link href={l.href} className="flex min-h-14 items-center px-5 font-medium hover:bg-anil-50">{l.label}</Link></li>)}
           </ul>
         </nav>
-        {user ? (
-          <form action={logout}>
-            <button className="w-full rounded-[var(--radius-card)] border border-manta bg-white p-4 font-semibold text-error dark:bg-manta">
-              {t.auth.logout}
-            </button>
-          </form>
-        ) : (
-          <Link
-            href="/auth/login"
-            className="block rounded-[var(--radius-card)] bg-anil-600 p-4 text-center font-semibold text-white"
-          >
-            {t.auth.login}
-          </Link>
-        )}
+        {user ? <form action={logout}><button className="w-full rounded-[var(--radius-card)] border border-manta bg-white p-4 font-semibold text-error dark:bg-manta">{t.auth.logout}</button></form> : <Link href="/auth/login" className="block rounded-[var(--radius-card)] bg-anil-600 p-4 text-center font-semibold text-white">{t.auth.login}</Link>}
       </div>
     </div>
   );
