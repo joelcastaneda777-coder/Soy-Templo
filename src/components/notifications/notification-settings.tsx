@@ -57,6 +57,23 @@ export function NotificationSettings() {
     void inspect(); return () => { cancelled = true; };
   }, []);
 
+  async function recoverExistingSubscription() {
+    try {
+      const registration = await navigator.serviceWorker.getRegistration();
+      const existing = await registration?.pushManager.getSubscription();
+      if (!existing) return false;
+      const status = await getPushServerStatus();
+      if (!status.authenticated || status.registeredDevices < 1) return false;
+      setServer(status);
+      setSubscribed(true);
+      setEndpoint(existing.endpoint);
+      setError(null);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   async function enable() {
     if (!server?.authenticated || !server.configured || !server.publicKey) return;
     setPending(true); setError(null);
@@ -65,7 +82,10 @@ export function NotificationSettings() {
       if (result !== "granted") return;
       const subscription = await ensurePushSubscription(server.publicKey, prefs);
       setSubscribed(true); setEndpoint(subscription.endpoint); await refreshServerStatus();
-    } catch (err) { setError(err instanceof Error ? err.message : t.notifications.error); }
+    } catch (err) {
+      const recovered = await recoverExistingSubscription();
+      if (!recovered) setError(err instanceof Error ? err.message : t.notifications.error);
+    }
     finally { setPending(false); }
   }
 
