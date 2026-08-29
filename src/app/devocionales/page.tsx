@@ -42,7 +42,7 @@ export default async function DevotionalsPage({
 
   return (
     <div className="space-y-5">
-      <PageHero title={t.nav.devotionals} />
+      <PageHero title={t.nav.devotionals} variant="abyssal" />
 
       <div className="flex justify-end">
         <Link
@@ -62,7 +62,7 @@ export default async function DevotionalsPage({
           aria-label="Buscar devocionales"
           className="w-full rounded-full border border-manta bg-white px-5 py-3"
         />
-        <button className="rounded-full bg-anil-600 px-5 font-semibold text-white">Buscar</button>
+        <button className="rounded-full bg-[#063547] px-5 font-semibold text-white transition hover:bg-[#084B53]">Buscar</button>
       </form>
 
       {error ? <p role="alert" className="text-error">{t.common.error}</p> : null}
@@ -75,15 +75,15 @@ export default async function DevotionalsPage({
             return (
               <li key={d.slug} className="stagger-item" style={{ animationDelay: `${i * 40}ms` }}>
                 <Link href={`/devocionales/${d.slug}`}>
-                  <Card className="transition-colors hover:border-anil-300">
+                  <Card className="transition-colors hover:border-[#2d7777]">
                     <div className="flex items-center gap-2 text-xs font-medium text-tinta-suave">
                       <span>{formatDate(d.publish_at!)}</span>
                       {isToday ? (
-                        <span className="rounded-full bg-cirio-100 px-2 py-0.5 font-semibold text-cirio-700">Hoy</span>
+                        <span className="rounded-full bg-[#dceeed] px-2 py-0.5 font-semibold text-[#063547]">Hoy</span>
                       ) : null}
                     </div>
                     <h2 className="mt-1 font-display text-xl font-semibold">{d.title}</h2>
-                    <p className="mt-1 text-sm text-balsamo-700">{d.bible_reading}</p>
+                    <p className="mt-1 text-sm text-[#0a5a5e]">{d.bible_reading}</p>
                   </Card>
                 </Link>
               </li>

@@ -1,5 +1,17 @@
 import { createClient } from "@/lib/supabase/server";
 
+function statusLabel(status: string) {
+  const labels: Record<string, string> = {
+    trialing: "Prueba",
+    active: "Activa",
+    grace_period: "Gracia",
+    paused: "Pausada",
+    canceled: "Cancelada",
+    expired: "Vencida",
+  };
+  return labels[status] ?? status;
+}
+
 export default async function AdminPlusPage() {
   const supabase = await createClient();
   const { data: isAdmin } = await supabase.rpc("has_role", { check_role: "admin" });
@@ -26,12 +38,16 @@ export default async function AdminPlusPage() {
   const names = new Map((profiles ?? []).map((profile) => [profile.id, profile.full_name]));
 
   const activeCount = (subscriptions ?? []).filter((item) => ["trialing", "active", "grace_period"].includes(item.status)).length;
+  const autoRenewCount = (subscriptions ?? []).filter((item) => item.auto_renewing).length;
 
   return (
-    <div className="max-w-4xl space-y-6">
-      <div>
-        <h1 className="font-display text-2xl font-semibold text-anil-800">Soy Templo+</h1>
-        <p className="mt-1 text-sm text-tinta-suave">Suscripciones y derechos premium. Google Play será la fuente principal cuando activemos el cobro Android.</p>
+    <div className="max-w-5xl space-y-6">
+      <div className="overflow-hidden rounded-[2rem] bg-[linear-gradient(145deg,#063547,#084B53_52%,#021F25)] p-6 text-white">
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/65">Suscripciones</p>
+        <h1 className="mt-2 font-display text-3xl font-semibold">Soy Templo+</h1>
+        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-white/72">
+          Control de derechos premium y suscripciones. La capa de acceso permanece separada de las donaciones y preparada para conectar el proveedor de cobro definitivo.
+        </p>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-3">
@@ -44,13 +60,16 @@ export default async function AdminPlusPage() {
           <p className="mt-1 text-2xl font-semibold">{activeCount}</p>
         </div>
         <div className="rounded-[var(--radius-card)] border border-manta bg-white p-4 dark:bg-manta">
-          <p className="text-xs text-tinta-suave">Proveedor previsto</p>
-          <p className="mt-1 font-semibold">Google Play</p>
+          <p className="text-xs text-tinta-suave">Renovación automática</p>
+          <p className="mt-1 text-2xl font-semibold">{autoRenewCount}</p>
         </div>
       </div>
 
-      <div className="space-y-3">
-        <h2 className="font-display text-xl font-semibold text-anil-800">Suscripciones recientes</h2>
+      <section className="space-y-3">
+        <div>
+          <h2 className="font-display text-xl font-semibold text-anil-800">Suscripciones recientes</h2>
+          <p className="mt-1 text-sm text-tinta-suave">Este panel refleja el estado registrado en Soy Templo; el proveedor externo será la fuente de verificación al activar cobros reales.</p>
+        </div>
         {subscriptions?.length ? (
           <ul className="space-y-2">
             {subscriptions.map((item) => (
@@ -60,7 +79,7 @@ export default async function AdminPlusPage() {
                     <strong>{names.get(item.user_id) || "Usuario Soy Templo"}</strong>
                     <p className="mt-1 text-xs text-tinta-suave">{item.product_id} · {item.provider} · {item.environment}</p>
                   </div>
-                  <span className="rounded-full bg-anil-50 px-3 py-1 text-xs font-semibold text-anil-700">{item.status}</span>
+                  <span className="rounded-full bg-[#063547]/10 px-3 py-1 text-xs font-semibold text-[#063547]">{statusLabel(item.status)}</span>
                 </div>
                 <p className="mt-2 text-xs text-tinta-suave">
                   {item.current_period_end ? `Periodo hasta ${new Date(item.current_period_end).toLocaleDateString("es-SV")}` : "Sin fecha de vencimiento"}
@@ -71,10 +90,10 @@ export default async function AdminPlusPage() {
           </ul>
         ) : (
           <p className="rounded-[var(--radius-card)] border border-manta bg-white p-5 text-sm text-tinta-suave dark:bg-manta">
-            Todavía no hay suscripciones. Esto es normal hasta conectar Google Play Billing.
+            Todavía no hay suscripciones reales. La arquitectura de acceso premium está lista para las pruebas de integración del proveedor de cobro.
           </p>
         )}
-      </div>
+      </section>
     </div>
   );
 }
