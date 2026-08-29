@@ -68,11 +68,6 @@ export function PlanGallery({ plans }: { plans: Plan[] }) {
 
   if (!plans.length) return null;
 
-  function scrollTo(index: number) {
-    const normalized = Math.max(0, Math.min(plans.length - 1, index));
-    cardRefs.current[normalized]?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
-  }
-
   function updateActiveFromScroll() {
     if (frame.current !== null) cancelAnimationFrame(frame.current);
     frame.current = requestAnimationFrame(() => {
@@ -99,7 +94,7 @@ export function PlanGallery({ plans }: { plans: Plan[] }) {
 
   return (
     <section
-      className="relative left-1/2 -mt-4 min-h-[calc(100dvh-4rem)] w-screen -translate-x-1/2 overflow-hidden bg-[#071b1b] text-white md:-mt-4"
+      className="relative left-1/2 -mt-4 min-h-[calc(100dvh-4rem)] w-screen -translate-x-1/2 overflow-hidden bg-[#071b1b] pb-[calc(6.5rem+env(safe-area-inset-bottom))] text-white md:-mt-4"
       style={pageStyle}
       aria-label="Planes bíblicos"
     >
@@ -128,11 +123,7 @@ export function PlanGallery({ plans }: { plans: Plan[] }) {
           onScroll={updateActiveFromScroll}
           className="plan-real-carousel flex snap-x snap-mandatory gap-4 overflow-x-auto px-[7vw] pb-4 pt-2 sm:gap-6 sm:px-[calc(50vw-310px)]"
           style={{ scrollbarWidth: "none", scrollPaddingInline: "7vw" }}
-          tabIndex={0}
-          onKeyDown={(event) => {
-            if (event.key === "ArrowLeft") scrollTo(activeIndex - 1);
-            if (event.key === "ArrowRight") scrollTo(activeIndex + 1);
-          }}
+          aria-label="Desliza horizontalmente para cambiar de plan"
         >
           {plans.map((plan, index) => {
             const accent = plan.accent_color || "#5B5FEF";
@@ -221,23 +212,12 @@ export function PlanGallery({ plans }: { plans: Plan[] }) {
           })}
         </div>
 
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 pb-8 pt-2 sm:px-8">
-          <button
-            type="button"
-            onClick={() => scrollTo(activeIndex - 1)}
-            disabled={activeIndex === 0}
-            className="rounded-full border border-white/15 bg-white/8 px-4 py-2 text-sm font-semibold text-white/80 backdrop-blur-xl transition hover:bg-white/14 disabled:opacity-25"
-          >
-            ← Anterior
-          </button>
-
+        <div className="mx-auto flex max-w-6xl items-center justify-center px-5 pb-2 pt-3 sm:px-8">
           <div className="flex items-center gap-1.5" aria-label={`Plan ${activeIndex + 1} de ${plans.length}`}>
             {plans.map((plan, index) => (
-              <button
+              <span
                 key={plan.slug}
-                type="button"
-                onClick={() => scrollTo(index)}
-                aria-label={`Ir a ${plan.name}`}
+                aria-hidden="true"
                 className="h-2 rounded-full transition-all duration-300"
                 style={{
                   width: index === activeIndex ? 28 : 8,
@@ -246,21 +226,12 @@ export function PlanGallery({ plans }: { plans: Plan[] }) {
               />
             ))}
           </div>
-
-          <button
-            type="button"
-            onClick={() => scrollTo(activeIndex + 1)}
-            disabled={activeIndex === plans.length - 1}
-            className="rounded-full border border-white/15 bg-white/8 px-4 py-2 text-sm font-semibold text-white/80 backdrop-blur-xl transition hover:bg-white/14 disabled:opacity-25"
-          >
-            Siguiente →
-          </button>
         </div>
       </div>
 
       <style jsx global>{`
         .plan-real-carousel::-webkit-scrollbar { display: none; }
-        .plan-real-carousel { -ms-overflow-style: none; }
+        .plan-real-carousel { -ms-overflow-style: none; overscroll-behavior-inline: contain; touch-action: pan-x pan-y; }
         @media (prefers-reduced-motion: reduce) {
           .plan-real-carousel { scroll-behavior: auto !important; }
         }
