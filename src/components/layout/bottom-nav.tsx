@@ -31,7 +31,11 @@ export function BottomNav() {
       aria-label="Navegación principal"
       className="fixed inset-x-3 bottom-3 z-40 mx-auto max-w-lg pb-[env(safe-area-inset-bottom)] md:hidden"
     >
-      <GlassSurface variant="strong" className="rounded-full p-1.5 shadow-lg">
+      <GlassSurface
+        variant="strong"
+        tint="linear-gradient(155deg, rgba(255,255,255,0.13), rgba(255,255,255,0.045))"
+        className="rounded-full p-1.5 shadow-[0_12px_36px_rgba(0,0,0,0.22)]"
+      >
         <GlassGroup>
           <ul ref={containerRef} className="relative flex flex-1 items-stretch justify-around">
             <GlassPill containerRef={containerRef} activeKey={activeItem.key} />
@@ -44,8 +48,8 @@ export function BottomNav() {
                     data-nav-key={key}
                     aria-current={active ? "page" : undefined}
                     className={cn(
-                      "flex min-h-14 flex-col items-center justify-center gap-0.5 rounded-full text-[10px] font-medium transition-colors",
-                      active ? "text-anil-900" : "text-anil-50/75 hover:text-anil-50"
+                      "flex min-h-14 flex-col items-center justify-center gap-0.5 rounded-full text-[10px] font-medium drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)] transition-colors",
+                      active ? "text-anil-900" : "text-white/88 hover:text-white"
                     )}
                   >
                     <Icon className="h-5 w-5" filled={active} />

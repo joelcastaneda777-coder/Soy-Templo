@@ -106,7 +106,7 @@ export function PlanGallery({ plans }: { plans: Plan[] }) {
       />
       <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-44 bg-gradient-to-b from-black/45 to-transparent" />
 
-      <header className="relative z-20 mx-auto flex w-full max-w-6xl items-end justify-between gap-4 px-5 pb-4 pt-7 sm:px-8 md:pt-9">
+      <header className="relative z-20 mx-auto flex w-full max-w-6xl items-end justify-between gap-4 px-5 pb-3 pt-7 sm:px-8 md:pt-9">
         <div>
           <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-white/58">Biblioteca Soy Templo</p>
           <h1 className="mt-1 font-display text-3xl font-semibold sm:text-4xl">Planes</h1>
@@ -118,6 +118,22 @@ export function PlanGallery({ plans }: { plans: Plan[] }) {
       </header>
 
       <div className="relative z-20">
+        <div className="mx-auto flex max-w-6xl items-center justify-center px-5 pb-2 pt-1 sm:px-8">
+          <div className="flex items-center gap-1.5" aria-label={`Plan ${activeIndex + 1} de ${plans.length}`}>
+            {plans.map((plan, index) => (
+              <span
+                key={plan.slug}
+                aria-hidden="true"
+                className="h-2 rounded-full transition-all duration-300"
+                style={{
+                  width: index === activeIndex ? 28 : 8,
+                  backgroundColor: index === activeIndex ? pageAccent : "rgba(255,255,255,.28)",
+                }}
+              />
+            ))}
+          </div>
+        </div>
+
         <div
           ref={scrollerRef}
           onScroll={updateActiveFromScroll}
@@ -210,22 +226,6 @@ export function PlanGallery({ plans }: { plans: Plan[] }) {
               </article>
             );
           })}
-        </div>
-
-        <div className="mx-auto flex max-w-6xl items-center justify-center px-5 pb-2 pt-3 sm:px-8">
-          <div className="flex items-center gap-1.5" aria-label={`Plan ${activeIndex + 1} de ${plans.length}`}>
-            {plans.map((plan, index) => (
-              <span
-                key={plan.slug}
-                aria-hidden="true"
-                className="h-2 rounded-full transition-all duration-300"
-                style={{
-                  width: index === activeIndex ? 28 : 8,
-                  backgroundColor: index === activeIndex ? pageAccent : "rgba(255,255,255,.28)",
-                }}
-              />
-            ))}
-          </div>
         </div>
       </div>
 
