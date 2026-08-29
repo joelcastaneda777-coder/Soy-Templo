@@ -1,0 +1,29 @@
+@keyframes radio-eq {
+  0%,100% { transform: scaleY(.55); opacity:.38; }
+  45% { transform: scaleY(1.65); opacity:.95; }
+  70% { transform: scaleY(.9); opacity:.62; }
+}
+@keyframes radio-breathe {
+  0%,100% { box-shadow: 0 24px 50px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.08); }
+  50% { box-shadow: 0 24px 70px rgba(16,185,129,.16), inset 0 1px 0 rgba(255,255,255,.1); }
+}
+@keyframes radio-float {
+  0%,100% { transform: translateY(0) rotate(-.25deg); }
+  50% { transform: translateY(-7px) rotate(.25deg); }
+}
+.radio-bar { transform-origin: bottom; }
+.radio-bar-active { animation: radio-eq 1.05s ease-in-out infinite; }
+.radio-dial { animation: radio-breathe 4.2s ease-in-out infinite; }
+.radio-program-card { animation: radio-float 6s ease-in-out infinite; }
+.radio-stack-scroll::-webkit-scrollbar { display:none; }
+.radio-stack-scroll { -ms-overflow-style:none; overscroll-behavior-inline:contain; }
+.radio-glass {
+  background: linear-gradient(150deg, rgba(255,255,255,.11), rgba(255,255,255,.035));
+  border:1px solid rgba(255,255,255,.11);
+  backdrop-filter: blur(26px) saturate(150%);
+  -webkit-backdrop-filter: blur(26px) saturate(150%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.12), 0 18px 60px rgba(0,0,0,.22);
+}
+@media (prefers-reduced-motion: reduce) {
+  .radio-bar-active,.radio-dial,.radio-program-card { animation:none !important; }
+}
