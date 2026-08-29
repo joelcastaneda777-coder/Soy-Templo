@@ -18,7 +18,7 @@ export default async function DonatePage() {
 
   return (
     <div className="space-y-5">
-      <PageHero title={t.donate.title} subtitle={t.donate.intro} />
+      <PageHero title={t.donate.title} subtitle={t.donate.intro} variant="abyssal" />
 
       <div className="mx-auto max-w-xl space-y-5">
         <DonationForm categories={categories ?? []} onlineEnabled={payment.configured && payment.name === "paypal"} />
