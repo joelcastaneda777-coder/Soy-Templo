@@ -33,8 +33,8 @@ export function BottomNav() {
     >
       <GlassSurface
         variant="strong"
-        tint="linear-gradient(155deg, rgba(255,255,255,0.13), rgba(255,255,255,0.045))"
-        className="rounded-full p-1.5 shadow-[0_12px_36px_rgba(0,0,0,0.22)]"
+        tint="linear-gradient(155deg, rgba(7,24,23,0.64), rgba(12,35,32,0.48))"
+        className="rounded-full border border-white/24 p-1.5 shadow-[0_14px_40px_rgba(0,0,0,0.30),inset_0_1px_0_rgba(255,255,255,0.18)] [&_.glass-pill-indicator]:bg-white/88 [&_.glass-pill-indicator]:shadow-[0_4px_14px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.85)]"
       >
         <GlassGroup>
           <ul ref={containerRef} className="relative flex flex-1 items-stretch justify-around">
@@ -48,8 +48,10 @@ export function BottomNav() {
                     data-nav-key={key}
                     aria-current={active ? "page" : undefined}
                     className={cn(
-                      "flex min-h-14 flex-col items-center justify-center gap-0.5 rounded-full text-[10px] font-medium drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)] transition-colors",
-                      active ? "text-anil-900" : "text-white/88 hover:text-white"
+                      "flex min-h-14 flex-col items-center justify-center gap-0.5 rounded-full text-[10px] font-semibold transition-colors",
+                      active
+                        ? "text-anil-950 drop-shadow-none"
+                        : "text-white/95 drop-shadow-[0_1px_3px_rgba(0,0,0,0.55)] hover:text-white"
                     )}
                   >
                     <Icon className="h-5 w-5" filled={active} />
