@@ -60,7 +60,7 @@ export default async function HomePage() {
   const isRadioLive = !!radio.stream_url;
 
   return (
-    <div>
+    <div className="space-y-6">
       <section className="hero-mesh -mx-4 -mt-4 space-y-5 rounded-b-[2rem] px-4 pb-6 pt-5 md:-mx-6 md:px-6">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
@@ -114,19 +114,17 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section className="-mx-4 space-y-6 bg-[linear-gradient(165deg,#163832_0%,#12322d_48%,#0B2B26_100%)] px-4 pb-12 pt-6 md:-mx-6 md:px-6">
-        {event ? (
-          <Card>
-            <Badge tone="balsamo">{t.home.nextEvent}</Badge>
-            <h2 className="mt-2 font-display text-xl font-semibold">{event.name}</h2>
-            <p className="mt-1 text-sm text-tinta-suave">{formatDate(event.starts_at)} · {formatTime(event.starts_at)}</p>
-            {event.location ? <p className="text-sm text-tinta-suave">{event.location}</p> : null}
-            <Link href="/eventos" className="mt-3 inline-block text-sm font-semibold text-anil-600">{t.events.upcoming} →</Link>
-          </Card>
-        ) : null}
+      {event ? (
+        <Card>
+          <Badge tone="balsamo">{t.home.nextEvent}</Badge>
+          <h2 className="mt-2 font-display text-xl font-semibold">{event.name}</h2>
+          <p className="mt-1 text-sm text-tinta-suave">{formatDate(event.starts_at)} · {formatTime(event.starts_at)}</p>
+          {event.location ? <p className="text-sm text-tinta-suave">{event.location}</p> : null}
+          <Link href="/eventos" className="mt-3 inline-block text-sm font-semibold text-anil-600">{t.events.upcoming} →</Link>
+        </Card>
+      ) : null}
 
-        <WeeklyAnnouncementsCarousel items={announcements} dark />
-      </section>
+      <WeeklyAnnouncementsCarousel items={announcements} />
     </div>
   );
 }
