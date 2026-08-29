@@ -93,17 +93,18 @@ export default async function PrayerPage({
       <PageHero
         title="Oración y cuidado"
         subtitle="No tienes que atravesar todo a solas. Podemos orar contigo y, cuando lo necesites, acompañarte de manera personal."
+        variant="abyssal"
       />
 
       <div className="mx-auto max-w-3xl space-y-9">
         <section aria-label="Opciones de oración y cuidado" className="grid gap-3 sm:grid-cols-2">
           {careOptions.map((option) => (
             <Link key={option.title} href={option.href} scroll>
-              <Card className="h-full transition-colors hover:border-anil-300">
+              <Card className="h-full transition-colors hover:border-[#2d7777]">
                 <p className="text-xs font-semibold uppercase tracking-wider text-balsamo-700">{option.eyebrow}</p>
                 <h2 className="mt-1 font-display text-xl font-semibold text-anil-800">{option.title}</h2>
                 <p className="mt-2 text-sm leading-relaxed text-tinta-suave">{option.description}</p>
-                <p className="mt-4 text-sm font-semibold text-anil-600">Solicitar →</p>
+                <p className="mt-4 text-sm font-semibold text-[#0a5a5e]">Solicitar →</p>
               </Card>
             </Link>
           ))}
@@ -111,7 +112,7 @@ export default async function PrayerPage({
 
         {user ? (
           <div className="flex justify-end">
-            <Link href="/oracion/mis-solicitudes" className="rounded-full border border-manta px-4 py-2 text-sm font-semibold text-anil-600 hover:border-anil-300">
+            <Link href="/oracion/mis-solicitudes" className="rounded-full border border-manta px-4 py-2 text-sm font-semibold text-[#0a5a5e] hover:border-[#2d7777]">
               Mis solicitudes
             </Link>
           </div>
@@ -128,7 +129,7 @@ export default async function PrayerPage({
           />
         </section>
 
-        <section className="rounded-[var(--radius-card)] border border-manta bg-manta/35 p-5">
+        <section className="rounded-[var(--radius-card)] border border-[#2d7777]/20 bg-[#063547]/[0.035] p-5">
           <h2 className="font-display text-lg font-semibold text-anil-800">Dos espacios, una misma comunidad</h2>
           <div className="mt-3 grid gap-4 text-sm leading-relaxed text-tinta-suave sm:grid-cols-2">
             <p><strong className="text-tinta">Muro de oración:</strong> puedes pedir que una petición sea compartida. Solo se publica después de revisión y nunca mostramos tus datos de contacto.</p>
