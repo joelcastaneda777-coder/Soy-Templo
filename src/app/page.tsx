@@ -61,7 +61,7 @@ export default async function HomePage() {
 
   return (
     <div className="space-y-6">
-      <section className="hero-mesh -mx-4 -mt-4 space-y-5 rounded-b-[2rem] px-4 pb-6 pt-5 md:-mx-6 md:px-6">
+      <section className="-mx-4 -mt-4 space-y-5 overflow-hidden rounded-b-[2rem] bg-[radial-gradient(circle_at_18%_15%,rgba(82,143,143,0.28),transparent_34%),radial-gradient(circle_at_88%_78%,rgba(6,133,98,0.18),transparent_30%),linear-gradient(155deg,#063547_0%,#084B53_42%,#04383F_72%,#021F25_100%)] px-4 pb-6 pt-5 md:-mx-6 md:px-6">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <Image src="/brand/logo-light.png" alt="" width={40} height={38} className="h-9 w-auto" priority />
