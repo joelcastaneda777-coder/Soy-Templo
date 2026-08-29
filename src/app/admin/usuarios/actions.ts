@@ -37,8 +37,6 @@ export async function setUserRole(formData: FormData) {
   const targetIsAdmin = current.has("admin") || targetIsSuperadmin;
   const hasAnySuperadmin = (superadminRows ?? []).length > 0;
 
-  // Bootstrap: while no superadmin exists, an existing admin may appoint the first one.
-  // After that, only superadmins may grant or remove that level.
   if ((role === "superadmin" && hasAnySuperadmin && !isSuperadmin) || (targetIsSuperadmin && !isSuperadmin)) {
     throw new Error("Solo un superadministrador puede modificar el rol superadmin.");
   }
@@ -61,11 +59,28 @@ export async function setUserRole(formData: FormData) {
 }
 
 export async function getAuthUsersForAdmin() {
-  await requireAdmin();
-  const service = createServiceClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
-  const { data, error } = await service.auth.admin.listUsers({ page: 1, perPage: 200 });
-  if (error) throw new Error("No pudimos cargar las cuentas de usuario.");
-  return data.users.map((account) => ({ id: account.id, email: account.email ?? "", createdAt: account.created_at }));
+  const { supabase } = await requireAdmin();
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (url && serviceKey) {
+    const service = createServiceClient(url, serviceKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
+    const { data, error } = await service.auth.admin.listUsers({ page: 1, perPage: 200 });
+    if (!error) {
+      return data.users.map((account) => ({ id: account.id, email: account.email ?? "", createdAt: account.created_at }));
+    }
+  }
+
+  // Fallback seguro: cuando la service role no está disponible en Vercel,
+  // usamos los perfiles que el administrador ya puede consultar mediante RLS.
+  const { data: profiles, error: profileError } = await supabase
+    .from("profiles")
+    .select("id,created_at")
+    .order("created_at", { ascending: false })
+    .limit(200);
+
+  if (profileError) throw new Error("No pudimos cargar las cuentas de usuario.");
+  return (profiles ?? []).map((profile) => ({ id: profile.id, email: "", createdAt: profile.created_at }));
 }
