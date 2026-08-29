@@ -31,30 +31,10 @@ const careOptions: Array<{
   title: string;
   description: string;
 }> = [
-  {
-    href: "#pedir-oracion",
-    eyebrow: "Comunidad",
-    title: "Pedir oración",
-    description: "Comparte una necesidad en privado o pide que la comunidad ore contigo después de moderación.",
-  },
-  {
-    href: "?tipo=counseling#acompanamiento",
-    eyebrow: "Confidencial",
-    title: "Consejería pastoral",
-    description: "Solicita una conversación y acompañamiento espiritual con el equipo de cuidado.",
-  },
-  {
-    href: "?tipo=hospital_visit#acompanamiento",
-    eyebrow: "Visitación",
-    title: "Visita hospitalaria",
-    description: "Coordina una visita de oración y acompañamiento para una persona hospitalizada.",
-  },
-  {
-    href: "?tipo=home_visit#acompanamiento",
-    eyebrow: "Plantadores",
-    title: "Visita en casa",
-    description: "Pide que nuestro equipo de Plantadores visite un hogar para escuchar, orar y acompañar.",
-  },
+  { href: "#pedir-oracion", eyebrow: "Comunidad", title: "Pedir oración", description: "Comparte una necesidad en privado o pide que la comunidad ore contigo después de moderación." },
+  { href: "?tipo=counseling#acompanamiento", eyebrow: "Confidencial", title: "Consejería pastoral", description: "Solicita una conversación y acompañamiento espiritual con el equipo de cuidado." },
+  { href: "?tipo=hospital_visit#acompanamiento", eyebrow: "Visitación", title: "Visita hospitalaria", description: "Coordina una visita de oración y acompañamiento para una persona hospitalizada." },
+  { href: "?tipo=home_visit#acompanamiento", eyebrow: "Plantadores", title: "Visita en casa", description: "Pide que nuestro equipo de Plantadores visite un hogar para escuchar, orar y acompañar." },
 ];
 
 function toCareType(value?: string): CareType {
@@ -62,26 +42,14 @@ function toCareType(value?: string): CareType {
   return "counseling";
 }
 
-export default async function PrayerPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ tipo?: string }>;
-}) {
+export default async function PrayerPage({ searchParams }: { searchParams: Promise<{ tipo?: string }> }) {
   const { tipo } = await searchParams;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
   const [{ data: profile }, { data: prayers }] = await Promise.all([
-    user
-      ? supabase.from("profiles").select("full_name, phone").eq("id", user.id).maybeSingle()
-      : Promise.resolve({ data: null }),
-    supabase
-      .from("prayer_requests")
-      .select("id, body, category, is_anonymous, status, created_at, prayer_interactions(count)")
-      .eq("is_public", true)
-      .in("status", ["approved", "answered"])
-      .order("created_at", { ascending: false })
-      .limit(20),
+    user ? supabase.from("profiles").select("full_name, phone").eq("id", user.id).maybeSingle() : Promise.resolve({ data: null }),
+    supabase.from("prayer_requests").select("id, body, category, is_anonymous, status, created_at, prayer_interactions(count)").eq("is_public", true).in("status", ["approved", "answered"]).order("created_at", { ascending: false }).limit(20),
   ]);
 
   const defaultName = profile?.full_name ?? (user?.user_metadata?.full_name as string | undefined) ?? "";
@@ -93,6 +61,7 @@ export default async function PrayerPage({
       <PageHero
         title="Oración y cuidado"
         subtitle="No tienes que atravesar todo a solas. Podemos orar contigo y, cuando lo necesites, acompañarte de manera personal."
+        variant="abyssal"
       />
 
       <div className="mx-auto max-w-3xl space-y-9">
@@ -111,21 +80,14 @@ export default async function PrayerPage({
 
         {user ? (
           <div className="flex justify-end">
-            <Link href="/oracion/mis-solicitudes" className="rounded-full border border-manta px-4 py-2 text-sm font-semibold text-anil-600 hover:border-anil-300">
-              Mis solicitudes
-            </Link>
+            <Link href="/oracion/mis-solicitudes" className="rounded-full border border-manta px-4 py-2 text-sm font-semibold text-anil-600 hover:border-anil-300">Mis solicitudes</Link>
           </div>
         ) : null}
 
         <PrayerForm />
 
         <section id="acompanamiento" className="scroll-mt-24">
-          <CareRequestForm
-            initialType={toCareType(tipo)}
-            defaultName={defaultName}
-            defaultPhone={defaultPhone}
-            defaultEmail={defaultEmail}
-          />
+          <CareRequestForm initialType={toCareType(tipo)} defaultName={defaultName} defaultPhone={defaultPhone} defaultEmail={defaultEmail} />
         </section>
 
         <section className="rounded-[var(--radius-card)] border border-manta bg-manta/35 p-5">
@@ -141,29 +103,23 @@ export default async function PrayerPage({
             <p className="text-xs font-semibold uppercase tracking-wider text-balsamo-700">Muro de oración</p>
             <h2 className="font-display text-2xl font-semibold text-anil-800">Oremos juntos</h2>
           </div>
-          {prayers?.length ? (
-            prayers.map((prayer, i) => {
-              const prayingCount = prayer.prayer_interactions?.[0]?.count ?? 0;
-              return (
-                <Card key={prayer.id} className="stagger-item" style={{ animationDelay: `${i * 40}ms` }}>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Badge tone="anil">{categoryLabels[prayer.category] ?? prayer.category}</Badge>
-                    {prayer.status === "answered" ? <Badge tone="balsamo">Respondida 🙌</Badge> : null}
-                    {prayer.is_anonymous ? <Badge>Anónima</Badge> : null}
-                  </div>
-                  <p className="mt-3 leading-relaxed">{prayer.body}</p>
-                  <div className="mt-4 flex items-center gap-3">
-                    <PrayingButton prayerId={prayer.id} isLoggedIn={!!user} />
-                    {prayingCount > 0 ? (
-                      <span className="text-sm text-tinta-suave">{prayingCount} {t.prayer.prayingCount}</span>
-                    ) : null}
-                  </div>
-                </Card>
-              );
-            })
-          ) : (
-            <EmptyState title={t.prayer.empty} />
-          )}
+          {prayers?.length ? prayers.map((prayer, i) => {
+            const prayingCount = prayer.prayer_interactions?.[0]?.count ?? 0;
+            return (
+              <Card key={prayer.id} className="stagger-item" style={{ animationDelay: `${i * 40}ms` }}>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge tone="anil">{categoryLabels[prayer.category] ?? prayer.category}</Badge>
+                  {prayer.status === "answered" ? <Badge tone="balsamo">Respondida 🙌</Badge> : null}
+                  {prayer.is_anonymous ? <Badge>Anónima</Badge> : null}
+                </div>
+                <p className="mt-3 leading-relaxed">{prayer.body}</p>
+                <div className="mt-4 flex items-center gap-3">
+                  <PrayingButton prayerId={prayer.id} isLoggedIn={!!user} />
+                  {prayingCount > 0 ? <span className="text-sm text-tinta-suave">{prayingCount} {t.prayer.prayingCount}</span> : null}
+                </div>
+              </Card>
+            );
+          }) : <EmptyState title={t.prayer.empty} />}
         </section>
       </div>
     </div>
