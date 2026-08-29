@@ -27,7 +27,7 @@ const categoryLabels: Record<string, string> = {
   especiales: "Especial",
 };
 
-export function WeeklyAnnouncementsCarousel({ items, dark = false }: { items: WeeklyAnnouncement[]; dark?: boolean }) {
+export function WeeklyAnnouncementsCarousel({ items }: { items: WeeklyAnnouncement[] }) {
   const scrollerRef = useRef<HTMLDivElement>(null);
   const pauseUntilRef = useRef(0);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -80,10 +80,10 @@ export function WeeklyAnnouncementsCarousel({ items, dark = false }: { items: We
     <section className="space-y-3" aria-labelledby="weekly-announcements-title">
       <div className="flex items-end justify-between gap-3 px-1">
         <div>
-          <p className={`text-xs font-semibold uppercase tracking-[0.18em] ${dark ? "text-anil-100/65" : "text-tinta-suave"}`}>Esta semana</p>
-          <h2 id="weekly-announcements-title" className={`font-display text-2xl font-semibold ${dark ? "text-anil-50" : "text-anil-800"}`}>Anuncios</h2>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-tinta-suave">Esta semana</p>
+          <h2 id="weekly-announcements-title" className="font-display text-2xl font-semibold text-anil-800">Anuncios</h2>
         </div>
-        <Link href="/anuncios" className={`text-sm font-semibold ${dark ? "text-cirio-100" : "text-anil-600"}`}>Ver todos →</Link>
+        <Link href="/anuncios" className="text-sm font-semibold text-anil-600">Ver todos →</Link>
       </div>
 
       <div className="relative -mx-4 md:-mx-6">
@@ -162,7 +162,7 @@ export function WeeklyAnnouncementsCarousel({ items, dark = false }: { items: We
               type="button"
               aria-label={`Ir al anuncio ${index + 1}`}
               onClick={() => { pauseAutoAdvance(); scrollToIndex(index); }}
-              className={`h-1.5 rounded-full transition-all ${activeIndex === index ? (dark ? "w-6 bg-cirio-100" : "w-6 bg-anil-600") : (dark ? "w-1.5 bg-white/25" : "w-1.5 bg-anil-300/40")}`}
+              className={`h-1.5 rounded-full transition-all ${activeIndex === index ? "w-6 bg-anil-600" : "w-1.5 bg-anil-300/40"}`}
             />
           ))}
         </div>
