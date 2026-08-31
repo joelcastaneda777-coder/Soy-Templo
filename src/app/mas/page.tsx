@@ -29,48 +29,42 @@ export default async function MorePage() {
 
   const isCareAdmin = roles.some((row) => row.role === "admin" || row.role === "superadmin");
   const links = [
-    { href: "/biblia", label: "Biblia" },
-    { href: "/donar", label: t.nav.donate },
-    { href: "/oracion", label: t.nav.prayer },
-    { href: "/radio", label: t.nav.streams },
-    { href: "/sermones", label: "Sermones" },
-    { href: "/anuncios", label: t.nav.announcements },
-    { href: "/favoritos", label: t.nav.favorites },
-    { href: "/progreso", label: t.nav.progress },
-    { href: "/perfil", label: t.nav.profile },
-    { href: "/configuracion", label: t.nav.settings },
-    { href: "/acerca-de", label: t.nav.about },
+    { href: "/biblia", label: "Biblia", icon: "✦" },
+    { href: "/donar", label: t.nav.donate, icon: "♡" },
+    { href: "/oracion", label: t.nav.prayer, icon: "◌" },
+    { href: "/sermones", label: "Sermones", icon: "▶" },
+    { href: "/favoritos", label: t.nav.favorites, icon: "☆" },
+    { href: "/progreso", label: t.nav.progress, icon: "↗" },
+    { href: "/perfil", label: t.nav.profile, icon: "◉" },
+    { href: "/configuracion", label: t.nav.settings, icon: "⚙" },
+    { href: "/acerca-de", label: t.nav.about, icon: "i" },
   ];
 
   return (
-    <div className="space-y-4">
-      <PageHero title={t.nav.more} variant="abyssal" />
-      <div className="mx-auto max-w-md space-y-4">
-        <Link
-          href="/plus"
-          className="block overflow-hidden rounded-[1.75rem] border border-[#2d7777]/30 bg-[linear-gradient(145deg,#063547,#084B53_55%,#021F25)] p-5 text-white shadow-[0_16px_42px_rgba(1,63,74,0.15)]"
-        >
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/65">Premium</p>
-          <div className="mt-1 flex items-end justify-between gap-4">
-            <div>
-              <h2 className="font-display text-2xl font-semibold">Soy Templo+</h2>
-              <p className="mt-1 text-sm leading-relaxed text-white/72">Planes especializados, audio ampliado y nuevas herramientas.</p>
-            </div>
-            <span className="text-xl" aria-hidden>→</span>
-          </div>
-        </Link>
+    <div className="space-y-6">
+      <PageHero title={t.nav.more} subtitle="Tu cuenta, comunidad y herramientas en un solo lugar." variant="editorial" />
+
+      <div className="mx-auto max-w-3xl space-y-5">
+        <section className="grid gap-3 sm:grid-cols-2">
+          <Link href="/plus" className="group relative overflow-hidden rounded-[1.9rem] border border-[#063F47]/10 bg-[radial-gradient(circle_at_85%_12%,rgba(255,255,255,.28),transparent_28%),linear-gradient(145deg,#063F47,#0A5559)] p-6 text-white shadow-[0_20px_45px_rgba(6,63,71,.14)] sm:col-span-2">
+            <p className="text-[11px] font-bold uppercase tracking-[.2em] text-white/55">Premium</p>
+            <div className="mt-2 flex items-end justify-between gap-4"><div><h2 className="font-display text-3xl font-semibold tracking-[-.02em]">Soy Templo+</h2><p className="mt-2 max-w-lg text-sm leading-relaxed text-white/68">Planes especializados, archivo ampliado y nuevas herramientas para profundizar.</p></div><span className="text-2xl transition-transform group-hover:translate-x-1" aria-hidden>→</span></div>
+          </Link>
+
+          {user ? <Link href="/notificaciones" className="rounded-[1.7rem] border border-[#063F47]/10 bg-white/68 p-5 shadow-[0_12px_30px_rgba(6,63,71,.07)] backdrop-blur-xl"><p className="text-[11px] font-bold uppercase tracking-[.18em] text-[#0A6A68]">Actividad</p><div className="mt-2 flex items-center justify-between gap-3"><h2 className="font-display text-xl font-semibold text-[#063F47]">Notificaciones</h2>{unreadCount ? <span className="rounded-full bg-[#063F47] px-2.5 py-1 text-xs font-bold text-white">{unreadCount}</span> : <span className="text-sm text-[#063F47]/45">Al día</span>}</div></Link> : null}
+
+          {isStaff ? <Link href="/admin" className="rounded-[1.7rem] border border-[#063F47]/10 bg-[#D9EEE4] p-5 shadow-[0_12px_30px_rgba(6,63,71,.07)]"><p className="text-[11px] font-bold uppercase tracking-[.18em] text-[#0A6A68]">Equipo</p><h2 className="mt-2 font-display text-xl font-semibold text-[#063F47]">{t.nav.admin} →</h2></Link> : null}
+        </section>
 
         <NotificationSettings />
+
+        {(careMembership?.active || isCareAdmin) ? <section className="grid gap-3 sm:grid-cols-2">{careMembership?.active ? <Link href="/cuidado" className="rounded-[1.6rem] border border-[#063F47]/10 bg-white/65 p-5 font-semibold text-[#063F47] shadow-sm backdrop-blur-xl">Equipo de cuidado →</Link> : null}{isCareAdmin ? <Link href="/admin/cuidado/equipo" className="rounded-[1.6rem] border border-[#063F47]/10 bg-white/65 p-5 font-semibold text-[#063F47] shadow-sm backdrop-blur-xl">Configurar equipo pastoral →</Link> : null}</section> : null}
+
         <nav aria-label="Más opciones">
-          <ul className="divide-y divide-manta overflow-hidden rounded-[var(--radius-card)] border border-manta bg-white dark:bg-manta">
-            {user ? <li><Link href="/notificaciones" className="flex min-h-14 items-center justify-between px-5 font-semibold text-[#0a5a5e]"><span>Notificaciones</span>{unreadCount ? <span className="rounded-full bg-[#063547] px-2 py-0.5 text-xs text-white">{unreadCount}</span> : null}</Link></li> : null}
-            {isStaff ? <li><Link href="/admin" className="flex min-h-14 items-center px-5 font-semibold text-[#0a5a5e]">{t.nav.admin} →</Link></li> : null}
-            {careMembership?.active ? <li><Link href="/cuidado" className="flex min-h-14 items-center px-5 font-semibold text-balsamo-700">Equipo de cuidado →</Link></li> : null}
-            {isCareAdmin ? <li><Link href="/admin/cuidado/equipo" className="flex min-h-14 items-center px-5 font-semibold text-balsamo-700">Configurar equipo pastoral →</Link></li> : null}
-            {links.map((l) => <li key={l.href}><Link href={l.href} className="flex min-h-14 items-center px-5 font-medium hover:bg-[#063547]/[0.035]">{l.label}</Link></li>)}
-          </ul>
+          <ul className="grid gap-3 sm:grid-cols-2">{links.map((l) => <li key={l.href}><Link href={l.href} className="group flex min-h-24 items-center justify-between rounded-[1.6rem] border border-[#063F47]/10 bg-white/66 p-5 shadow-[0_10px_26px_rgba(6,63,71,.055)] backdrop-blur-xl transition hover:-translate-y-0.5 hover:border-[#0A6A68]/30"><span className="font-semibold text-[#063F47]">{l.label}</span><span className="flex h-9 w-9 items-center justify-center rounded-full border border-[#063F47]/8 bg-[#E8F5EE] text-sm text-[#0A6A68] transition group-hover:bg-[#D8EEE3]" aria-hidden>{l.icon}</span></Link></li>)}</ul>
         </nav>
-        {user ? <form action={logout}><button className="w-full rounded-[var(--radius-card)] border border-manta bg-white p-4 font-semibold text-error dark:bg-manta">{t.auth.logout}</button></form> : <Link href="/auth/login" className="block rounded-[var(--radius-card)] bg-[#063547] p-4 text-center font-semibold text-white">{t.auth.login}</Link>}
+
+        {user ? <form action={logout}><button className="w-full rounded-[1.5rem] border border-[#A23B3B]/12 bg-white/60 p-4 font-semibold text-error shadow-sm backdrop-blur-xl">{t.auth.logout}</button></form> : <Link href="/auth/login" className="block rounded-[1.5rem] bg-[#063F47] p-4 text-center font-semibold text-white shadow-[0_10px_24px_rgba(6,63,71,.16)]">{t.auth.login}</Link>}
       </div>
     </div>
   );
