@@ -17,14 +17,19 @@ function StatusPill({ tone, children }: { tone: "ok" | "warn" | "muted"; childre
 export default async function AdminSettingsPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  const [{ data: roles }, { data: identityRow }, { data: radioRow }, { data: plusRows }] = await Promise.all([
+  const [rolesResult, identityResult, radioResult, plusResult] = await Promise.all([
     user ? supabase.from("user_roles").select("role").eq("user_id", user.id) : Promise.resolve({ data: [] }),
     supabase.from("app_settings").select("value,updated_at").eq("key", "site_identity").maybeSingle(),
     supabase.from("app_settings").select("value").eq("key", "radio").maybeSingle(),
     supabase.from("plus_subscriptions").select("id", { count: "exact", head: true }).eq("status", "active"),
   ]);
 
-  const isAdmin = (roles ?? []).some((item) => item.role === "admin" || item.role === "superadmin");
+  const roles = rolesResult.data ?? [];
+  const identityRow = identityResult.data;
+  const radioRow = radioResult.data;
+  const activePlusCount = plusResult.count ?? 0;
+
+  const isAdmin = roles.some((item) => item.role === "admin" || item.role === "superadmin");
   if (!isAdmin) return <p className="rounded-3xl border border-manta bg-white p-5 text-sm">No tienes permiso para administrar la configuración global.</p>;
 
   const identity = (identityRow?.value as {
@@ -64,7 +69,7 @@ export default async function AdminSettingsPage() {
           <HealthCard title="Push" description="Notificaciones web y PWA" status={pushConfigured ? "Configurado" : "Pendiente"} ok={pushConfigured} />
           <HealthCard title="Radio 24/7" description="Señal de transmisión principal" status={radioConfigured ? "Enlazada" : "Pendiente"} ok={radioConfigured} />
           <HealthCard title="PayPal" description="Donaciones institucionales" status={paypalConfigured ? "Conectado" : "Pendiente"} ok={paypalConfigured} />
-          <HealthCard title="Soy Templo+" description="Derechos premium y suscripciones" status={`${plusRows?.length ?? 0} activas`} ok />
+          <HealthCard title="Soy Templo+" description="Derechos premium y suscripciones" status={`${activePlusCount} activas`} ok />
         </div>
       </section>
 
