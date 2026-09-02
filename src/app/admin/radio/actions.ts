@@ -25,9 +25,13 @@ const episodeSchema = z.object({
   title: z.string().trim().min(2).max(180),
   description: z.string().trim().max(1600).optional(),
   sourceUrl: z.string().trim().url().refine((value) => value.startsWith("https://"), "Usa una URL HTTPS").optional().or(z.literal("")),
+  audioPath: z.string().trim().max(500).optional().or(z.literal("")),
   durationMinutes: z.coerce.number().int().min(0).max(1440).optional(),
   accessTier: z.enum(["free", "plus"]),
   status: z.enum(["draft", "published"]),
+}).refine((value) => Boolean(value.sourceUrl || value.audioPath), {
+  message: "Agrega un archivo de audio o una URL HTTPS.",
+  path: ["sourceUrl"],
 });
 
 const scheduleSchema = z.object({
@@ -94,7 +98,8 @@ export async function createRadioProgram(formData: FormData) {
 export async function createRadioEpisode(formData: FormData) {
   const parsed = episodeSchema.safeParse({
     programId: formData.get("programId"), title: formData.get("title"), description: formData.get("description") || undefined,
-    sourceUrl: formData.get("sourceUrl") || "", durationMinutes: formData.get("durationMinutes") || undefined,
+    sourceUrl: formData.get("sourceUrl") || "", audioPath: formData.get("audioPath") || "",
+    durationMinutes: formData.get("durationMinutes") || undefined,
     accessTier: formData.get("accessTier"), status: formData.get("status"),
   });
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Datos inválidos");
@@ -107,10 +112,17 @@ export async function createRadioEpisode(formData: FormData) {
     published_at: parsed.data.status === "published" ? new Date().toISOString() : null, created_by: user.id,
   }).select("id").single();
   if (error || !episode) throw new Error(`No pudimos crear el episodio: ${error?.message ?? "sin ID"}`);
-  if (parsed.data.sourceUrl) {
-    const { error: sourceError } = await supabase.rpc("set_radio_episode_source", { target_episode: episode.id, new_audio_path: null, new_external_url: parsed.data.sourceUrl });
-    if (sourceError) { await supabase.from("radio_episodes").delete().eq("id", episode.id); throw new Error(`No pudimos guardar la fuente: ${sourceError.message}`); }
+
+  const { error: sourceError } = await supabase.rpc("set_radio_episode_source", {
+    target_episode: episode.id,
+    new_audio_path: parsed.data.audioPath || null,
+    new_external_url: parsed.data.sourceUrl || null,
+  });
+  if (sourceError) {
+    await supabase.from("radio_episodes").delete().eq("id", episode.id);
+    throw new Error(`No pudimos guardar la fuente: ${sourceError.message}`);
   }
+
   refreshRadio();
 }
 
