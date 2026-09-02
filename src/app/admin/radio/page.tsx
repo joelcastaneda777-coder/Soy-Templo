@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
-import { createRadioEpisode, createRadioProgram, createRadioSchedule, deleteRadioSchedule, saveRadioStation } from "./actions";
+import { createRadioProgram, createRadioSchedule, deleteRadioSchedule, saveRadioStation } from "./actions";
+import { NewEpisodeForm } from "./new-episode-form";
 
 export const metadata: Metadata = { title: "Radio · Panel" };
 
@@ -46,15 +47,7 @@ export default async function AdminRadioPage() {
           <button className="min-h-11 rounded-full bg-anil-600 px-5 font-semibold text-white">Crear programa</button>
         </form>
 
-        <form action={createRadioEpisode} className="space-y-3 rounded-[var(--radius-card)] border border-manta bg-white p-5 shadow-sm">
-          <div><h2 className="font-display text-xl font-semibold text-anil-800">Nuevo episodio</h2><p className="mt-1 text-xs text-tinta-suave">Sube el enlace del audio y decide si será gratis o Soy Templo+.</p></div>
-          <label className="block text-sm font-medium">Programa<select name="programId" required className="mt-1 min-h-11 w-full rounded-xl border border-manta px-3"><option value="">Seleccionar…</option>{(programs ?? []).map((program) => <option key={program.id} value={program.id}>{program.name}</option>)}</select></label>
-          <label className="block text-sm font-medium">Título<input name="title" required maxLength={180} className="mt-1 min-h-11 w-full rounded-xl border border-manta px-3" /></label>
-          <label className="block text-sm font-medium">Descripción<textarea name="description" maxLength={1600} rows={3} className="mt-1 w-full rounded-xl border border-manta p-3" /></label>
-          <label className="block text-sm font-medium">URL HTTPS del audio<input name="sourceUrl" type="url" placeholder="https://..." className="mt-1 min-h-11 w-full rounded-xl border border-manta px-3" /></label>
-          <div className="grid gap-3 sm:grid-cols-3"><label className="text-sm font-medium">Duración (min)<input name="durationMinutes" type="number" min="0" className="mt-1 min-h-11 w-full rounded-xl border border-manta px-3" /></label><label className="text-sm font-medium">Acceso<select name="accessTier" defaultValue="free" className="mt-1 min-h-11 w-full rounded-xl border border-manta px-3"><option value="free">Gratis</option><option value="plus">Soy Templo+</option></select></label><label className="text-sm font-medium">Estado<select name="status" defaultValue="draft" className="mt-1 min-h-11 w-full rounded-xl border border-manta px-3"><option value="draft">Borrador</option><option value="published">Publicado</option></select></label></div>
-          <button disabled={!programs?.length} className="min-h-11 rounded-full bg-anil-600 px-5 font-semibold text-white disabled:opacity-50">Crear episodio</button>
-        </form>
+        <NewEpisodeForm programs={(programs ?? []).map((program) => ({ id: program.id, name: program.name }))} />
       </section>
 
       <section className="rounded-[var(--radius-card)] border border-manta bg-white p-5 shadow-sm">
